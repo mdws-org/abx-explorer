@@ -85,6 +85,10 @@ function validMint(m) {
         && m.tokenId >= 0 && isHash(m.tx);
 }
 
+/* ABX's own rehearsal, canary and acceptance contracts: listed in the directory, kept out of the gallery and the news. */
+const TEST_NAME = /^(Rehearsal \d{4}-\d{2}-\d{2}|ABX .*(Canary|Acceptance))$/;
+const isTest = (c) => TEST_NAME.test(c.name || '');
+
 /* ── names and mint terms ────────────────────────────────────────────────── */
 
 function who(chainId, addr, name) {
@@ -131,7 +135,7 @@ function minterLine(c) {
 /* ── news ────────────────────────────────────────────────────────────────── */
 
 function renderNewCollections(contracts) {
-    const rows = [...contracts].sort((a, b) => b.timestamp - a.timestamp);
+    const rows = contracts.filter((c) => !isTest(c)).sort((a, b) => b.timestamp - a.timestamp);
     $('#newcols').innerHTML = rows.map((c, i) => `
         <li${i >= LOG_FIRST * 2 ? ' hidden' : ''}>
             <time datetime="${day(c.timestamp)}">${fmtDate(day(c.timestamp))}</time>
@@ -260,8 +264,8 @@ function renderData() {
     const note = (n, total) => (active
         ? `${n} of ${total} &middot; <button class="clear" type="button">Clear filters</button>` : '');
     $('#dir-count').innerHTML = note(rows.length, state.all.length);
-    $('#gal-count').innerHTML = note(rows.filter((c) => imageSrc(c.image)).length,
-        state.all.filter((c) => imageSrc(c.image)).length);
+    const inGallery = (c) => imageSrc(c.image) && !isTest(c);
+    $('#gal-count').innerHTML = note(rows.filter(inGallery).length, state.all.filter(inGallery).length);
     $('#rows').innerHTML = rows.length ? rows.map((c) => `
         <tr id="c-${c.chainId}-${c.address}">
             <td class="name"><a href="#c-${c.chainId}-${c.address}" data-k="${c.chainId}:${c.address}">${esc(c.name || 'Unnamed')}</a>${distinctSymbol(c) ? `<span class="sym">${esc(c.symbol)}</span>` : ''}</td>
@@ -272,8 +276,8 @@ function renderData() {
             <td class="mintcol${c.sale && c.sale.state === 'open' ? ' open' : ''}">${esc(mintLabel(c))}</td>
             <td class="r">${day(c.timestamp)}</td>
         </tr>`).join('') : '<tr><td colspan="7" class="empty">No collections match.</td></tr>';
-    const withImg = rows.filter((c) => imageSrc(c.image));
-    const missing = rows.length - withImg.length;
+    const withImg = rows.filter(inGallery);
+    const missing = rows.filter((c) => !imageSrc(c.image) && !isTest(c)).length;
     $('#grid').innerHTML = withImg.map((c) => `
         <button class="card" type="button" data-k="${c.chainId}:${c.address}">
             <div class="img"><img src="${esc(imageSrc(c.image))}" alt="" loading="lazy" /></div>
