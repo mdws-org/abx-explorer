@@ -298,6 +298,17 @@ table.dir {
 }
 .dir td.name { white-space: normal; color: var(--title); min-width: 12em; }
 .dir td.name .sym { color: var(--ink-soft); font-size: 0.78rem; margin-left: 6px; }
+.dir td.name .test {
+    display: inline-block;
+    margin-left: 8px;
+    padding: 0 5px;
+    border: 1px solid var(--rule);
+    font-size: 0.62rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    vertical-align: middle;
+}
 .dir .r { text-align: right; padding-right: 0; }
 .dir a { text-decoration: none; }
 .dir a:hover { color: var(--accent); }

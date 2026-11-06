@@ -268,7 +268,7 @@ function renderData() {
     $('#gal-count').innerHTML = note(rows.filter(inGallery).length, state.all.filter(inGallery).length);
     $('#rows').innerHTML = rows.length ? rows.map((c) => `
         <tr id="c-${c.chainId}-${c.address}">
-            <td class="name"><a href="#c-${c.chainId}-${c.address}" data-k="${c.chainId}:${c.address}">${esc(c.name || 'Unnamed')}</a>${distinctSymbol(c) ? `<span class="sym">${esc(c.symbol)}</span>` : ''}</td>
+            <td class="name"><a href="#c-${c.chainId}-${c.address}" data-k="${c.chainId}:${c.address}">${esc(c.name || 'Unnamed')}</a>${distinctSymbol(c) ? `<span class="sym">${esc(c.symbol)}</span>` : ''}${isTest(c) ? '<span class="test" title="One of ABX\'s own rehearsal, canary or acceptance contracts">ABX test</span>' : ''}</td>
             <td class="kind">${esc(c.kind)}</td>
             <td>${esc(c.chain)}</td>
             <td>${who(c.chainId, c.address)}</td>
