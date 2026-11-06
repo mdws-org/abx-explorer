@@ -39,7 +39,9 @@ const SEL = {
 };
 const MAX_SUBREQUESTS = 46, NEW_PER_RUN = 2, REFRESH_PER_RUN = 3, LOG_SPAN = 2_500_000;
 const HEARTBEAT_MAX_S = 3600;
-const RELEASES = 'https://api.github.com/repos/ArtBlocks/abx/releases?per_page=20';
+// Release notes come from the changelogs on GitHub's raw CDN: no API key, no API rate limit.
+const CHANGELOG_BASE = 'https://raw.githubusercontent.com/ArtBlocks/abx/main/packages';
+const NEWS_PACKAGES = [['abx-cli', 'cli'], ['abx-sdk', 'sdk']];
 
 class OutOfBudget extends Error {}
 
@@ -58,11 +60,12 @@ function budgetFor() {
 
 async function rpc(env, b, chain, method, params) {
   const r = await b.fetch(`https://services.abx.io/v1/rpc/${chain}`, {
-    method: 'POST', redirect: 'error',
+    // manual: a redirect is never followed, so the key cannot travel to another origin
+    method: 'POST', redirect: 'manual',
     headers: { 'content-type': 'application/json', authorization: `Bearer ${env.ABX_KEY}` },
     body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
   });
-  if (!r.ok) throw new Error(`${method} on ${chain}: HTTP ${r.status}`);
+  if (!r.ok) throw new Error(`${method} on ${chain}: HTTP ${r.status}${r.status >= 300 && r.status < 400 ? ' (redirect refused)' : ''}`);
   const j = await r.json();
   if (j.error) throw new Error(`${method} on ${chain}: ${JSON.stringify(j.error).slice(0, 160)}`);
   return j.result;
@@ -267,16 +270,20 @@ async function refreshCollections(env, b, state) {
 /* ── news ────────────────────────────────────────────────────────────────── */
 
 const PROMPT = `You write one short news entry for a page that tracks ABX, an open protocol from Art Blocks.
-Use only the release notes below. Return JSON only: {"title": "...", "body": "..."}.
-title: 8 to 90 characters, plain words, may start with the package and version.
-body: two or three plain sentences, 40 to 480 characters, saying what changed for someone using ABX.
+Use only the release notes below. Reply with exactly two lines and nothing else:
+Title: 8 to 90 characters, plain words, may start with the package and version.
+Body: two or three plain sentences on one line, 40 to 480 characters, saying what changed for someone using ABX.
 No links, no domains, no markdown, no dashes, no opinions, no version numbers other than ones in the notes.`;
 
 async function claude(env, b, notes) {
   const r = await b.fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: { 'content-type': 'application/json', 'x-api-key': env.ANTHROPIC_KEY, 'anthropic-version': '2023-06-01' },
-    body: JSON.stringify({ model: 'claude-haiku-5-5', max_tokens: 400, messages: [{ role: 'user', content: `${PROMPT}\n\nRelease notes:\n${notes}` }] }),
+    // Thinking off: a two-line summary needs none, and with it on the token cap is spent before any text.
+    body: JSON.stringify({
+      model: 'claude-haiku-5-5', max_tokens: 600, thinking: { type: 'disabled' },
+      messages: [{ role: 'user', content: `${PROMPT}\n\nRelease notes:\n${notes}` }],
+    }),
   });
   if (!r.ok) throw new Error(`Anthropic HTTP ${r.status}`);
   return (await r.json()).content.map((p) => p.text || '').join('');
@@ -289,54 +296,75 @@ async function workersAI(env, notes) {
   return r.response || '';
 }
 
+/** The model's two lines, "Title: ..." and "Body: ..."; null when either is missing. */
 function parseModel(text) {
-  const m = /\{[\s\S]*\}/.exec(text || '');
-  if (!m) return null;
-  try { return JSON.parse(m[0]); } catch { return null; }
+  const title = /^\s*Title:\s*(.+?)\s*$/m.exec(text || '');
+  const body = /^\s*Body:\s*(.+?)\s*$/m.exec(text || '');
+  return title && body ? { title: title[1], body: body[1] } : null;
 }
 
 /** One entry per release day: the model writes title and body, the code supplies date and sources. */
 async function writeEntry(env, b, facts, notes) {
   for (const writer of [() => claude(env, b, notes), () => workersAI(env, notes)]) {
     try {
-      const out = parseModel(await writer());
-      if (!out) continue;
+      const text = await writer();
+      const out = parseModel(text);
+      if (!out) { console.warn('news: model reply had no Title and Body lines', String(text).slice(0, 200)); continue; }
       const entry = { date: facts.date, tag: facts.tag, title: out.title, body: out.body, sources: facts.sources, automated: 'ai' };
-      if (validateEntry(entry, facts).ok) return entry;
+      const v = validateEntry(entry, facts);
+      if (v.ok) return entry;
+      console.warn('news: entry failed validation', v.errors.join('; '));
     } catch (e) {
       if (e instanceof OutOfBudget) throw e;
+      console.warn('news: writer failed', e.message);
     }
   }
   return factsOnlyEntry(facts);
 }
 
+/** Version sections of a changesets CHANGELOG.md, newest first: [{version, notes}]. */
+function changelogSections(md) {
+  const parts = md.split(/^## /m).slice(1);
+  return parts.map((p) => {
+    const nl = p.indexOf('\n');
+    return { version: p.slice(0, nl).trim(), notes: p.slice(nl + 1).trim() };
+  }).filter((s) => /^\d+\.\d+\.\d+$/.test(s.version));
+}
+
+const releaseUrl = (pkg, v) => `https://github.com/ArtBlocks/abx/releases/tag/${encodeURIComponent(`@artblocks/${pkg}@${v}`)}`;
+
 async function refreshNews(env, b, state) {
-  const r = await b.fetch(RELEASES, { headers: { 'user-agent': 'abx-explorer', accept: 'application/vnd.github+json' } });
-  if (!r.ok) return 0;
-  const fresh = (await r.json()).filter((rel) => !rel.draft && !state.seenReleases.includes(rel.tag_name));
-  if (!fresh.length) return 0;
-  const byDay = new Map();
-  for (const rel of fresh) {
-    const date = rel.published_at.slice(0, 10);
-    if (!byDay.has(date)) byDay.set(date, []);
-    byDay.get(date).push(rel);
+  const fresh = [];
+  for (const [pkg, dir] of NEWS_PACKAGES) {
+    const r = await b.fetch(`${CHANGELOG_BASE}/${dir}/CHANGELOG.md`, { headers: { 'user-agent': 'abx-explorer' } });
+    if (!r.ok) continue;
+    for (const s of changelogSections(await r.text())) {
+      const key = `${pkg}@${s.version}`;
+      if (!state.seenReleases.includes(key)) fresh.push({ pkg, key, ...s });
+    }
   }
+  // First run: the page's news already covers these, so mark them seen and write nothing.
+  if (!state.seenReleases.length) {
+    state.seenReleases = fresh.map((f) => f.key);
+    return 0;
+  }
+  if (!fresh.length) return 0;
   const obj = await env.BUCKET.get('news.json');
   const news = obj ? await obj.json() : { entries: [] };
+  const date = new Date().toISOString().slice(0, 10);
+  // One entry per package per run, oldest unseen version first, so a burst of releases becomes a short series.
   let written = 0;
-  for (const [date, rels] of [...byDay].sort()) {
+  for (const pkg of new Set(fresh.map((f) => f.pkg))) {
     if (b.left() < 4 || written >= 2) break;
-    const versions = rels.map((x) => /@(\d+\.\d+\.\d+)$/.exec(x.tag_name)).filter(Boolean).map((m) => m[1]);
-    const headline = rels.find((x) => x.tag_name.includes('abx-cli@')) || rels[0];
+    const rel = fresh.filter((f) => f.pkg === pkg).at(-1);
     const facts = {
-      date, tag: 'Release', versions,
-      title: `${headline.tag_name.replace('@artblocks/', '').replace('@', ' ')} released`,
-      summary: `New releases: ${rels.map((x) => x.tag_name.replace('@artblocks/', '')).join(', ')}. The release notes list the changes.`,
-      sources: rels.slice(0, 4).map((x) => [x.tag_name.replace('@artblocks/', '').slice(0, 40), x.html_url]),
+      date, tag: 'Release', versions: [rel.version],
+      title: `${pkg} ${rel.version} released`,
+      summary: `${pkg} ${rel.version} is out. The release notes list what changed.`,
+      sources: [[`${pkg} ${rel.version}`.slice(0, 40), releaseUrl(pkg, rel.version)]],
     };
-    const notes = rels.map((x) => `${x.tag_name}\n${(x.body || '').slice(0, 1500)}`).join('\n\n').slice(0, 4000);
-    news.entries.unshift(await writeEntry(env, b, facts, notes));
-    state.seenReleases.push(...rels.map((x) => x.tag_name));
+    news.entries.unshift(await writeEntry(env, b, facts, `${pkg} ${rel.version}\n${rel.notes.slice(0, 3500)}`));
+    state.seenReleases.push(rel.key);
     written++;
   }
   news.entries = news.entries.slice(0, 200);
@@ -367,6 +395,8 @@ async function loadState(env) {
 }
 
 export default {
+  // No routes: the Worker only runs on its schedules.
+  fetch: () => new Response('Not found', { status: 404 }),
   async scheduled(event, env) {
     const b = budgetFor(), state = await loadState(env);
     try {
