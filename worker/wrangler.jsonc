@@ -1,0 +1,14 @@
+// abx-refresh: keeps abx.thebenmeadows.com's data current without any of our own machines.
+// No routes and no custom domain: it only runs on its two schedules and writes to the
+// site's R2 bucket. Secrets (set with `wrangler secret put`): ABX_KEY, ANTHROPIC_KEY, TG_BOT, TG_CHAT.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "abx-refresh",
+  "main": "./worker.js",
+  "compatibility_date": "2026-10-01",
+  "workers_dev": false,
+  "triggers": { "crons": ["*/15 * * * *", "7 * * * *"] },
+  "r2_buckets": [{ "binding": "BUCKET", "bucket_name": "abx-thebenmeadows-com" }],
+  "ai": { "binding": "AI" },
+  "observability": { "enabled": true }
+}
