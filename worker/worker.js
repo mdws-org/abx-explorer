@@ -430,8 +430,40 @@ async function refreshNews(env, b, state) {
   }
   if (!published.length) return;
   news.entries = news.entries.slice(0, 200);
+  delete news.note;
   await env.BUCKET.put('news.json', JSON.stringify(news), { httpMetadata: { contentType: 'application/json', cacheControl: 'public, max-age=60' } });
   state.seenReleases.push(...published); // only after news.json holds them
+  await writeFeed(env, news);
+}
+
+/* ── Atom feed of the news entries, at /feed.xml ─────────────────────────── */
+
+const SITE = 'https://abx.thebenmeadows.com/';
+const xml = (s) => String(s ?? '').replace(/[<>&"']/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&apos;' })[c]);
+
+function atomFeed(news) {
+  const entries = (news.entries || []).filter((e) => /^\d{4}-\d{2}-\d{2}$/.test(e.date)).slice(0, 50);
+  const updated = entries.length ? `${entries[0].date}T00:00:00Z` : new Date().toISOString();
+  const items = entries.map((e) => {
+    const link = (e.sources || []).map((s) => s[1]).find((u) => /^https:\/\//.test(u)) || SITE;
+    const id = `tag:abx.thebenmeadows.com,${e.date}:${encodeURIComponent(e.title || '')}`;
+    return `<entry><title>${xml(e.title)}</title><id>${xml(id)}</id><updated>${e.date}T00:00:00Z</updated>` +
+      `<link href="${xml(link)}"/><category term="${xml(e.tag)}"/><summary>${xml(e.body)}</summary></entry>`;
+  }).join('\n');
+  return `<?xml version="1.0" encoding="utf-8"?>\n<feed xmlns="http://www.w3.org/2005/Atom">` +
+    `<title>ABX Explorer news</title><id>${SITE}</id><updated>${updated}</updated>` +
+    `<link href="${SITE}"/><link rel="self" href="${SITE}feed.xml"/><author><name>Benjamin Meadows</name></author>\n${items}\n</feed>\n`;
+}
+
+async function writeFeed(env, news) {
+  await env.BUCKET.put('feed.xml', atomFeed(news), { httpMetadata: { contentType: 'application/atom+xml; charset=utf-8', cacheControl: 'public, max-age=300' } });
+}
+
+// The feed follows news.json; this fills it in when it is missing (first deploy).
+async function ensureFeed(env) {
+  if (await env.BUCKET.head('feed.xml')) return;
+  const obj = await env.BUCKET.get('news.json');
+  if (obj) await writeFeed(env, await obj.json());
 }
 
 /* ── alerts ──────────────────────────────────────────────────────────────── */
@@ -513,6 +545,7 @@ export default {
       await leased(env, 'state/news.json', async (st) => {
         try { await checkHealth(env, b, st, coll); } catch (e) { console.warn('health check failed', e.message); }
         await refreshNews(env, b, st);
+        try { await ensureFeed(env); } catch (e) { console.warn('feed write failed', e.message); }
       });
     } else {
       await leased(env, 'state/collections.json', (st) => refreshCollections(env, b, st));
