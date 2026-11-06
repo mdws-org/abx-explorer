@@ -38,9 +38,10 @@ export function scanList(projects, chainIds) {
   return out;
 }
 
-const positive = (v) => {
-  try { return BigInt(String(v).trim()) > 0n; } catch { return false; }
-};
+// Decimal balances only, and live tokens with a decimal tokenId only: the same tokens the find3r
+// fork counts when it reads a collection itself, so the index and its fallback agree.
+const positive = (v) => /^[0-9]+$/.test(String(v)) && BigInt(v) > 0n;
+const TOKEN_ID = /^(0|[1-9][0-9]*)$/;
 
 /** {wallet: liveTokenCount} for one `/api/project/<address>` response.
     Throws when the response is not a project state for `expect` (chainId and address). */
@@ -57,7 +58,7 @@ export function ownerCounts(project, expect) {
     if (ADDR.test(a) && !/^0x0{40}$/.test(a)) counts[a] = (counts[a] || 0) + 1;
   };
   for (const t of project.tokens) {
-    if (!t || t.lifecycle !== 'live') continue;
+    if (!t || t.lifecycle !== 'live' || !TOKEN_ID.test(String(t.tokenId))) continue;
     const holders = t.holders && typeof t.holders === 'object' ? t.holders : null;
     if (holders) {
       const held = new Set();

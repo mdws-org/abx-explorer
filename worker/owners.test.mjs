@@ -68,7 +68,7 @@ test('non-live tokens are excluded', () => {
 });
 
 test('a zero or unparseable 1155 balance does not count', () => {
-  const s = { chainId: 1, address: COLL1155, tokens: [{ lifecycle: 'live', holders: { [A]: '0', [B]: 'abc', [C]: '-1' } }] };
+  const s = { chainId: 1, address: COLL1155, tokens: [{ tokenId: '0', lifecycle: 'live', holders: { [A]: '0', [B]: 'abc', [C]: '-1' } }] };
   assert.deepEqual(ownerCounts(s, { chainId: 1, address: COLL1155 }), {});
 });
 
@@ -98,4 +98,17 @@ test('a project state for a different contract is refused', () => {
 test('a collection listed twice appears once', () => {
   const ix = indexFromStates([...projects, projects[0]], states, T, MAIN);
   assert.equal(ix.collections.length, 2);
+});
+
+test('counts match the find3r fallback: hex balances and tokens without a decimal tokenId do not count', () => {
+  const s = {
+    chainId: 1, address: COLL1155,
+    tokens: [
+      { tokenId: '0', lifecycle: 'live', holders: { [A]: '0x5', [B]: ' 2' } },
+      { lifecycle: 'live', owner: C },
+      { tokenId: '07', lifecycle: 'live', owner: C },
+      { tokenId: 3, lifecycle: 'live', owner: C },
+    ],
+  };
+  assert.deepEqual(ownerCounts(s, { chainId: 1, address: COLL1155 }), { [C.toLowerCase()]: 1 });
 });

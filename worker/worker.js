@@ -361,7 +361,12 @@ async function refreshOwners(env, b) {
   const list = scanList(await resolverJson(b, '/api/projects', MAX_PROJECTS_BYTES), OWNER_CHAINS);
   const listed = new Set(list.map(collectionKey));
   let changed = 0;
-  for (const k of Object.keys(st.collections)) if (!listed.has(k)) { delete st.collections[k]; changed++; }
+  // A collection leaves the index only when two lists in a row omit it; while a removal waits for
+  // its second list nothing is published, so one short reply from the resolver changes nothing.
+  const gone = Object.keys(st.collections).filter((k) => !listed.has(k));
+  const removed = gone.filter((k) => st.unlisted.includes(k));
+  for (const k of removed) { delete st.collections[k]; changed++; }
+  st.unlisted = gone;
   const at = (c) => (st.collections[collectionKey(c)] && st.collections[collectionKey(c)].fetchedAt) || 0;
   const due = [...list].sort((x, y) => at(x) - at(y));
   for (const c of due) {
@@ -377,10 +382,13 @@ async function refreshOwners(env, b) {
       console.warn('owners: read failed', k, e.message); // the last good owners stay until a read succeeds
     }
   }
-  const complete = list.every((c) => st.collections[collectionKey(c)] && st.collections[collectionKey(c)].owners);
+  const complete = removed.length === gone.length && list.every((c) => st.collections[collectionKey(c)] && st.collections[collectionKey(c)].owners);
   if (complete && changed) {
     const owned = Object.fromEntries(list.map((c) => [collectionKey(c), st.collections[collectionKey(c)].owners]));
-    const index = buildOwnersIndex(list, owned, Date.now(), OWNER_CHAINS);
+    // generatedAt is the oldest read in the index, so a collection whose reads keep failing ages the
+    // whole file and the consumer's freshness check sees it.
+    const oldest = Math.min(...list.map((c) => st.collections[collectionKey(c)].fetchedAt || 0));
+    const index = buildOwnersIndex(list, owned, oldest * 1000, OWNER_CHAINS);
     await env.BUCKET.put('abx-owners.json', JSON.stringify(index), { httpMetadata: { contentType: 'application/json', cacheControl: 'public, max-age=300' } });
     st.publishedAt = now();
   }
@@ -497,7 +505,8 @@ async function refreshNews(env, b, state) {
 /* ── Atom feed of the news entries, at /feed.xml ─────────────────────────── */
 
 const SITE = 'https://abx.thebenmeadows.com/';
-const xml = (s) => String(s ?? '').replace(/[<>&"']/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&apos;' })[c]);
+// Characters XML 1.0 forbids are dropped (one makes the whole feed unreadable); the rest are escaped.
+const xml = (s) => String(s ?? '').replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\ufffe\uffff]/g, '').replace(/[<>&"']/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&apos;' })[c]);
 
 function atomFeed(news) {
   const entries = (news.entries || []).filter((e) => /^\d{4}-\d{2}-\d{2}$/.test(e.date)).slice(0, 50);
@@ -519,17 +528,21 @@ async function writeFeed(env, news) {
 
 const putNews = (env, news) => env.BUCKET.put('news.json', JSON.stringify(news), { httpMetadata: { contentType: 'application/json', cacheControl: 'public, max-age=60' } });
 
-// The feed follows news.json; this fills it in when it is missing (first deploy). It also drops a
-// top-level `note` (the sample-data notice of the first upload) from news.json.
+// The feed follows news.json; this rewrites it when it is missing (first deploy) or older than
+// news.json (a feed write that failed after news.json was written). It also drops a top-level
+// `note` (the sample-data notice of the first upload) from news.json.
 async function ensureFeed(env) {
   const obj = await env.BUCKET.get('news.json');
   if (!obj) return;
   const news = await obj.json();
+  let rewrote = false;
   if (news && typeof news === 'object' && !Array.isArray(news) && 'note' in news) {
     delete news.note;
     await putNews(env, news);
+    rewrote = true;
   }
-  if (!(await env.BUCKET.head('feed.xml'))) await writeFeed(env, news);
+  const feed = await env.BUCKET.head('feed.xml');
+  if (!feed || rewrote || feed.uploaded < obj.uploaded) await writeFeed(env, news);
 }
 
 /* ── alerts ──────────────────────────────────────────────────────────────── */
@@ -570,7 +583,7 @@ async function checkHealth(env, b, newsState, collState) {
 const DEFAULTS = {
   'state/collections.json': { lastBlock: {}, queue: [], cursor: 0, lastSuccess: null, lease: 0 },
   'state/news.json': { seenReleases: [], alerts: {}, lease: 0 },
-  'state/abx-owners.json': { collections: {}, listed: 0, publishedAt: null },
+  'state/abx-owners.json': { collections: {}, unlisted: [], listed: 0, publishedAt: null },
 };
 
 async function loadState(env, key) {
