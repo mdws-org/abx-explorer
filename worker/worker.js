@@ -5,6 +5,10 @@
    mint terms of a few existing collections in rotation, and write
    contracts.json to the R2 bucket the site is served from.
 
+   Then, with every subrequest the collections job left over: refresh the owner data of
+   ABX resolver collections in rotation (oldest first) and, once every collection has been read at
+   least once, write abx-owners.json (which wallets hold which collections).
+
    Every hour: turn new ABX releases into news entries (Claude, then Workers AI,
    then facts only; every entry passes validate.js before it is published), and
    alert on Telegram when the btm minter's heartbeat or the 15-minute job goes
@@ -20,6 +24,7 @@
    - The free plan allows 50 subrequests per run; every outbound call goes through `budget`. */
 
 import { validateEntry, factsOnlyEntry } from './validate.js';
+import { scanList, ownerCounts, buildOwnersIndex, collectionKey } from './owners.js';
 
 const CHAINS = [
   { id: 1, name: 'Ethereum', confirm: 12 },
@@ -48,6 +53,10 @@ const MAX_ABI_BYTES = 65_536, MAX_DATA_URI = 400_000, MAX_META_BYTES = 200_000;
 // Release notes come from the changelogs on GitHub's raw CDN: no API key, no API rate limit.
 const CHANGELOG_BASE = 'https://raw.githubusercontent.com/ArtBlocks/abx/main/packages';
 const NEWS_PACKAGES = [['abx-cli', 'cli'], ['abx-sdk', 'sdk']];
+const RESOLVER = 'https://resolver.abx.io';
+// The chains the find3r fork scans for ABX collections (Base Sepolia holds most of them).
+const OWNER_CHAINS = [1, 8453, 42161, 84532];
+const MAX_PROJECTS_BYTES = 2_000_000, MAX_PROJECT_BYTES = 8_000_000;
 
 class OutOfBudget extends Error {}
 class RpcDown extends Error {}
@@ -330,6 +339,55 @@ async function refreshCollections(env, b, state) {
   if (anyRead) state.lastSuccess = now();
 }
 
+/* ── owner index ─────────────────────────────────────────────────────────── */
+
+/** JSON from the resolver, refusing bodies over `max` bytes before parsing. */
+async function resolverJson(b, path, max) {
+  const r = await b.fetch(`${RESOLVER}${path}`, { headers: { accept: 'application/json' } });
+  if (!r.ok) throw new Error(`${path}: HTTP ${r.status}`);
+  if (Number(r.headers.get('content-length') || 0) > max) throw new Error(`${path}: over ${max} bytes`);
+  const text = await r.text();
+  if (text.length > max) throw new Error(`${path}: over ${max} bytes`);
+  return JSON.parse(text);
+}
+
+/** Runs last in its schedule and spends the rest of the budget: reads the owners of as many
+    collections as subrequests allow (never read first, then oldest read), saves
+    them in state/abx-owners.json, and publishes abx-owners.json when every listed collection has
+    owner data. When the collection list cannot be read, nothing is published. */
+async function refreshOwners(env, b) {
+  if (b.left() < 2) return;
+  const st = await loadState(env, 'state/abx-owners.json');
+  const list = scanList(await resolverJson(b, '/api/projects', MAX_PROJECTS_BYTES), OWNER_CHAINS);
+  const listed = new Set(list.map(collectionKey));
+  let changed = 0;
+  for (const k of Object.keys(st.collections)) if (!listed.has(k)) { delete st.collections[k]; changed++; }
+  const at = (c) => (st.collections[collectionKey(c)] && st.collections[collectionKey(c)].fetchedAt) || 0;
+  const due = [...list].sort((x, y) => at(x) - at(y));
+  for (const c of due) {
+    if (b.left() < 1) break;
+    const k = collectionKey(c), prev = st.collections[k] || {};
+    try {
+      const owners = ownerCounts(await resolverJson(b, `/api/project/${c.address}`, MAX_PROJECT_BYTES), c);
+      st.collections[k] = { fetchedAt: now(), owners };
+      changed++;
+    } catch (e) {
+      if (e instanceof OutOfBudget) throw e;
+      st.collections[k] = { ...prev, failedAt: now(), error: clean(e.message, 200) };
+      console.warn('owners: read failed', k, e.message); // the last good owners stay until a read succeeds
+    }
+  }
+  const complete = list.every((c) => st.collections[collectionKey(c)] && st.collections[collectionKey(c)].owners);
+  if (complete && changed) {
+    const owned = Object.fromEntries(list.map((c) => [collectionKey(c), st.collections[collectionKey(c)].owners]));
+    const index = buildOwnersIndex(list, owned, Date.now(), OWNER_CHAINS);
+    await env.BUCKET.put('abx-owners.json', JSON.stringify(index), { httpMetadata: { contentType: 'application/json', cacheControl: 'public, max-age=300' } });
+    st.publishedAt = now();
+  }
+  st.listed = list.length;
+  await saveState(env, 'state/abx-owners.json', st);
+}
+
 /* ── news ────────────────────────────────────────────────────────────────── */
 
 const PROMPT = `You write one short news entry for a page that tracks ABX, an open protocol from Art Blocks.
@@ -431,7 +489,7 @@ async function refreshNews(env, b, state) {
   if (!published.length) return;
   news.entries = news.entries.slice(0, 200);
   delete news.note;
-  await env.BUCKET.put('news.json', JSON.stringify(news), { httpMetadata: { contentType: 'application/json', cacheControl: 'public, max-age=60' } });
+  await putNews(env, news);
   state.seenReleases.push(...published); // only after news.json holds them
   await writeFeed(env, news);
 }
@@ -459,11 +517,19 @@ async function writeFeed(env, news) {
   await env.BUCKET.put('feed.xml', atomFeed(news), { httpMetadata: { contentType: 'application/atom+xml; charset=utf-8', cacheControl: 'public, max-age=300' } });
 }
 
-// The feed follows news.json; this fills it in when it is missing (first deploy).
+const putNews = (env, news) => env.BUCKET.put('news.json', JSON.stringify(news), { httpMetadata: { contentType: 'application/json', cacheControl: 'public, max-age=60' } });
+
+// The feed follows news.json; this fills it in when it is missing (first deploy). It also drops a
+// top-level `note` (the sample-data notice of the first upload) from news.json.
 async function ensureFeed(env) {
-  if (await env.BUCKET.head('feed.xml')) return;
   const obj = await env.BUCKET.get('news.json');
-  if (obj) await writeFeed(env, await obj.json());
+  if (!obj) return;
+  const news = await obj.json();
+  if (news && typeof news === 'object' && !Array.isArray(news) && 'note' in news) {
+    delete news.note;
+    await putNews(env, news);
+  }
+  if (!(await env.BUCKET.head('feed.xml'))) await writeFeed(env, news);
 }
 
 /* ── alerts ──────────────────────────────────────────────────────────────── */
@@ -504,6 +570,7 @@ async function checkHealth(env, b, newsState, collState) {
 const DEFAULTS = {
   'state/collections.json': { lastBlock: {}, queue: [], cursor: 0, lastSuccess: null, lease: 0 },
   'state/news.json': { seenReleases: [], alerts: {}, lease: 0 },
+  'state/abx-owners.json': { collections: {}, listed: 0, publishedAt: null },
 };
 
 async function loadState(env, key) {
@@ -548,7 +615,10 @@ export default {
         try { await ensureFeed(env); } catch (e) { console.warn('feed write failed', e.message); }
       });
     } else {
-      await leased(env, 'state/collections.json', (st) => refreshCollections(env, b, st));
+      await leased(env, 'state/collections.json', async (st) => {
+        await refreshCollections(env, b, st);
+        try { await refreshOwners(env, b); } catch (e) { console.warn('owner index skipped', e.message); }
+      });
     }
   },
 };
