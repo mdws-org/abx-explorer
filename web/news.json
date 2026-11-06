@@ -1,0 +1,63 @@
+{
+ "note": "Entries written automatically from public ABX sources; the live feed replaces this file.",
+ "entries": [
+  {
+   "date": "2026-11-05",
+   "tag": "Release",
+   "title": "ABX CLI 0.8.0: creator wallets can pay their own gas",
+   "body": "A creator wallet with enough native funds now pays transaction value and fees itself. When it cannot, zero-value calls fall back to ABX gas sponsorship where the account is eligible. The new --embedded flag replaces --sponsor, which stays as an alias, and the CLI now checks every payload the service returns against the local transaction before signing.",
+   "sources": [
+    ["Release notes", "https://github.com/ArtBlocks/abx/releases/tag/%40artblocks%2Fabx-cli%400.8.0"],
+    ["Creator wallet docs", "https://docs.abx.io/docs/using-abx/creator-wallet"]
+   ]
+  },
+  {
+   "date": "2026-11-05",
+   "tag": "Service",
+   "title": "BAMFS is now ABX FS, at fs.abx.io",
+   "body": "The onchain file system formerly at bamfs.app now runs as ABX FS. It chunks and deduplicates a folder, stores it onchain and serves it from a content-addressed gateway. The site labels it prerelease and unaudited software.",
+   "sources": [
+    ["fs.abx.io", "https://fs.abx.io/"],
+    ["ABX FS docs", "https://docs.fs.abx.io/"]
+   ]
+  },
+  {
+   "date": "2026-11-05",
+   "tag": "Networks",
+   "title": "Ethereum, Base and Arbitrum move to supported",
+   "body": "CLI 0.7.4 and SDK 0.7.1 mark Ethereum mainnet, Base, Arbitrum and Arbitrum Sepolia as supported networks. Robinhood Chain remains in beta. Gas sponsorship is offered on Base and Arbitrum only.",
+   "sources": [
+    ["CLI 0.7.4", "https://github.com/ArtBlocks/abx/releases/tag/%40artblocks%2Fabx-cli%400.7.4"],
+    ["Network table", "https://docs.abx.io/docs/reference/deployments"]
+   ]
+  },
+  {
+   "date": "2026-11-03",
+   "tag": "Feature",
+   "title": "Sponsored gas reaches Arbitrum",
+   "body": "CLI 0.7.3 allows the sponsored signing lane on Arbitrum and Arbitrum Sepolia when both the live service and the account advertise eligibility. Recognizing a chain does not by itself grant sponsorship.",
+   "sources": [
+    ["CLI 0.7.3", "https://github.com/ArtBlocks/abx/releases/tag/%40artblocks%2Fabx-cli%400.7.3"]
+   ]
+  },
+  {
+   "date": "2026-10-09",
+   "tag": "Release",
+   "title": "CLI 0.7.1 tidies output and OpenSea links",
+   "body": "Piped output drops color codes, the sponsored creator-wallet lane appears in missing-key recovery help, deploy-time collection identity is kept in contractURI, and Ethereum and Base OpenSea refresh links return.",
+   "sources": [
+    ["CLI 0.7.1", "https://github.com/ArtBlocks/abx/releases/tag/%40artblocks%2Fabx-cli%400.7.1"]
+   ]
+  },
+  {
+   "date": "2026-09-10",
+   "tag": "Protocol",
+   "title": "abx-core-v3 factories go live",
+   "body": "The current generation of ABX factories deploys at the same address on every chain through a keyless CREATE2 proxy. The v2 generation stops taking new deployments; its collections stay readable and writable.",
+   "sources": [
+    ["Deployments", "https://docs.abx.io/docs/reference/deployments"],
+    ["Versioning", "https://docs.abx.io/docs/protocol/versioning"]
+   ]
+  }
+ ]
+}

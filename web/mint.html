@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: https:; font-src 'self'; connect-src 'self' https:; object-src 'none'; base-uri 'none'; form-action 'none'" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="robots" content="noindex" />
+        <meta name="color-scheme" content="dark light" />
+        <title>Free ABX Mint · TheBenMeadows</title>
+        <link rel="stylesheet" href="style.css" />
+        <script src="theme.js"></script>
+    </head>
+    <body>
+        <header class="running-head">
+            <span class="rh-left"><a href="./">ABX</a></span>
+            <nav class="rh-right"><button id="theme-toggle" type="button" aria-label="Switch theme"></button></nav>
+        </header>
+        <main class="mint-page">
+            <h1 id="title">Free mint</h1>
+            <p class="sub" id="what">Checking the sale on chain…</p>
+            <dl class="mint-facts" id="facts"></dl>
+            <p><button class="mint-go" id="go" type="button" hidden>Mint free to the ABX wallet</button></p>
+            <p class="disclose" id="status" role="status"></p>
+            <div class="wallet-links" id="open-in" hidden>
+                <p class="disclose">No wallet in this browser. Open this page in your wallet app:</p>
+                <p id="wallet-apps"></p>
+            </div>
+            <p class="disclose">The transaction mints one token to the ABX wallet with a maximum price of 0. If the sale is repriced before it lands, the contract rejects it instead of charging. You pay only network gas.</p>
+        </main>
+        <script src="mint.js"></script>
+    </body>
+</html>

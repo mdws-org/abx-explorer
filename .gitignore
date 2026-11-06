@@ -1,0 +1,8 @@
+.env
+__pycache__/
+site/
+data/chain-*.json
+data/contracts.json
+web/contracts.json
+web/ours.json
+web/img/

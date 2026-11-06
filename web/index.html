@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: https:; font-src 'self'; frame-src https: data:; connect-src 'self' https:; object-src 'none'; base-uri 'none'; form-action 'none'" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="description" content="Every collection deployed with ABX, the open protocol from Art Blocks, plus a running log of ABX releases." />
+        <meta name="color-scheme" content="dark light" />
+        <title>ABX Explorer · TheBenMeadows</title>
+        <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#000000" />
+        <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff" />
+        <link rel="stylesheet" href="style.css" />
+        <script src="theme.js"></script>
+    </head>
+    <body>
+        <header class="running-head">
+            <span class="rh-left"><a href="/">Index</a></span>
+            <nav class="rh-right">
+                <a href="/experiments/">Experiments</a>
+                <span aria-hidden="true">&nbsp;&middot;&nbsp;</span>
+                <button id="theme-toggle" type="button" aria-label="Switch theme"></button>
+            </nav>
+        </header>
+
+        <header class="head">
+            <h1>ABX Explorer</h1>
+            <p class="sub">ABX is the open protocol Art Blocks released for putting digital objects on the
+            blockchain. Anyone can deploy a collection with it. This page reads the six ABX factory
+            contracts directly, so every collection they have ever made shows up here.</p>
+            <p class="meta" id="meta" role="status">Reading the chain&hellip;</p>
+        </header>
+
+        <main>
+            <section id="news" aria-labelledby="news-h">
+                <div class="sec-head">
+                    <h2 id="news-h"><span class="num">1</span>News</h2>
+                </div>
+                <p class="disclose one-line">Written automatically from public sources, not reviewed by a person. Each entry links its sources.</p>
+                <div class="news-cols">
+                    <div>
+                        <h3 class="col-h">ABX news</h3>
+                        <ol class="log" id="log"></ol>
+                        <button class="more" id="log-more" type="button" hidden>Older entries</button>
+                    </div>
+                    <div>
+                        <h3 class="col-h">New collections</h3>
+                        <ol class="log compact" id="newcols"></ol>
+                        <button class="more" id="newcols-more" type="button" hidden>Older collections</button>
+                    </div>
+                </div>
+            </section>
+
+            <section id="directory" aria-labelledby="dir-h">
+                <div class="sec-head">
+                    <h2 id="dir-h"><span class="num">2</span>Directory</h2>
+                    <span class="sec-aside" id="dir-count" role="status"></span>
+                </div>
+                <div class="controls" role="search">
+                    <input id="q" type="search" placeholder="Search name, address or deployer" aria-label="Search collections" />
+                    <span id="chains" class="chips" role="group" aria-label="Chain"></span>
+                    <span id="kinds" class="chips" role="group" aria-label="Kind"></span>
+                    <span id="status" class="chips" role="group" aria-label="Mint status"></span>
+                </div>
+                <div class="table-wrap">
+                    <table class="dir">
+                        <thead>
+                            <tr>
+                                <th scope="col"><button data-sort="name">Collection</button></th>
+                                <th scope="col"><button data-sort="kind">Kind</button></th>
+                                <th scope="col"><button data-sort="chain">Chain</button></th>
+                                <th scope="col">Contract</th>
+                                <th scope="col">Deployer</th>
+                                <th scope="col">Mint</th>
+                                <th scope="col" class="r" aria-sort="descending"><button data-sort="timestamp" class="on" data-dir="↓">Deployed</button></th>
+                            </tr>
+                        </thead>
+                        <tbody id="rows"></tbody>
+                    </table>
+                </div>
+                <button class="more" id="rows-more" type="button" hidden>More</button>
+                <details class="shared">
+                    <summary>Shared ABX protocol contracts, identical on every chain</summary>
+                    <table class="dir small" id="shared"></table>
+                </details>
+            </section>
+
+            <section id="gallery" aria-labelledby="gal-h">
+                <div class="sec-head">
+                    <h2 id="gal-h"><span class="num">3</span>Gallery</h2>
+                    <span class="sec-aside" id="gal-count" role="status"></span>
+                </div>
+                <div class="grid" id="grid"></div>
+                <button class="more" id="grid-more" type="button" hidden>More</button>
+                <p class="disclose" id="gal-note"></p>
+            </section>
+
+            <section id="ours" aria-labelledby="ours-h">
+                <div class="sec-head">
+                    <h2 id="ours-h"><span class="num">4</span>Minted here</h2>
+                    <span class="sec-aside" id="ours-wallet"></span>
+                </div>
+                <p class="disclose">Free mints collected by this page&rsquo;s wallet, with gas paid by ABX sponsorship.</p>
+                <div class="mints ours" id="ours-grid"></div>
+                <button class="more" id="ours-more" type="button" hidden>More</button>
+            </section>
+        </main>
+
+        <dialog id="dlg"></dialog>
+
+        <footer class="site-footer">
+            <p class="provenance">Read from the six ABX factory contracts and each collection&rsquo;s own onchain metadata. Independent, not affiliated with Art Blocks.</p>
+            <nav class="footer-line">
+                <a href="https://www.abx.io/" target="_blank" rel="noopener">ABX</a>
+                <span aria-hidden="true">&middot;</span>
+                <a href="https://docs.abx.io/" target="_blank" rel="noopener">ABX docs</a>
+                <span aria-hidden="true">&middot;</span>
+                <a href="https://fs.abx.io/" target="_blank" rel="noopener">ABX FS</a>
+                <span aria-hidden="true">&middot;</span>
+                <a href="https://github.com/ArtBlocks/abx" target="_blank" rel="noopener">ABX source</a>
+                <span aria-hidden="true">&middot;</span>
+                <a href="https://www.artblocks.io/" target="_blank" rel="noopener">Art Blocks</a>
+            </nav>
+            <nav class="footer-line">
+                <a href="#">Onchain mirror</a>
+                <span aria-hidden="true">&middot;</span>
+                <a href="#">News feed</a>
+                <span aria-hidden="true">&middot;</span>
+                <a href="https://github.com/TheBenMeadows/tbm">Source</a>
+                <span aria-hidden="true">&middot;</span>
+                <a href="/mirrors/">Mirrors</a>
+                <span aria-hidden="true">&middot;</span>
+                <a href="/experiments/">Experiments</a>
+            </nav>
+        </footer>
+        <script src="app.js"></script>
+    </body>
+</html>
