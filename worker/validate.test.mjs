@@ -32,3 +32,9 @@ test('a source off the allowed hosts is rejected', () => assert.equal(bad({ sour
 test('an http source is rejected', () => assert.equal(bad({ sources: [['x', 'http://github.com/ArtBlocks/abx']] }).ok, false));
 test('no sources is rejected', () => assert.equal(bad({ sources: [] }).ok, false));
 test('the facts-only fallback itself passes', () => assert.equal(validateEntry(factsOnlyEntry(facts), facts).ok, true));
+// Added after council round 1 (worker), before the validator change.
+test('a domain on a newer ending is rejected', () => assert.equal(bad({ body: good.body + ' Claim yours at free-mint.dev now.' }).ok, false));
+test('an .ai domain is rejected', () => assert.equal(bad({ body: good.body + ' Details at abxdrops.ai today.' }).ok, false));
+test('an HTML entity is rejected', () => assert.equal(bad({ title: 'ABX CLI 0.8.0 &lt;script&gt; release' }).ok, false));
+test('a bidi override is rejected', () => assert.equal(bad({ title: 'ABX CLI 0.8.0 ‮released' }).ok, false));
+test('ordinary prose with a hyphenated term still passes', () => assert.equal(bad({ body: 'The creator-wallet payment policy now appears in previews and resume plans, and deploy plans must carry it.' }).ok, true));

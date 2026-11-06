@@ -10,5 +10,6 @@
   "triggers": { "crons": ["*/15 * * * *", "7 * * * *"] },
   "r2_buckets": [{ "binding": "BUCKET", "bucket_name": "abx-thebenmeadows-com" }],
   "ai": { "binding": "AI" },
-  "observability": { "enabled": true }
+  // Request tracing stays off: the Telegram bot token is part of a request URL.
+  "observability": { "enabled": false }
 }

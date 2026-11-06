@@ -10,8 +10,10 @@ export const SOURCE_HOSTS = new Set([
   'github.com', 'docs.abx.io', 'www.npmjs.com', 'fs.abx.io', 'www.abx.io', 'abx.thebenmeadows.com',
 ]);
 
-const URLISH = /https?:\/\/|www\.|\b[a-z0-9-]+\.(com|io|org|xyz|eth|app|net)\b/i;
-const MARKUP = /[<>`*_#[\]]/;
+// Any word.word where the second part is letters only: catches every domain ending, new or old.
+// Version numbers (0.8.1) and abbreviations (e.g.) do not match.
+const URLISH = /https?:\/\/|www\.|\b[a-z0-9-]+\.[a-z]{2,}\b/i;
+const MARKUP = /[<>`*_#[\]]|&[a-z#0-9]+;|[​-‏‪-‮⁦-⁩]/i;
 const DASHES = /[–—]/;
 const SELF = /\b(as an ai|language model|i cannot|i can't|i'm sorry)\b/i;
 const VERSION = /\bv?(\d+\.\d+\.\d+)\b/g;
