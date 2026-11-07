@@ -398,7 +398,7 @@ function art(t) {
 /* find3r's own artwork-page link format (its "Copy artwork link"); find3r reads Ethereum, Base and Arbitrum. */
 const FIND3R_CHAINS = new Set([1, 8453, 42161]);
 const find3rToken = (c, id) => (FIND3R_CHAINS.has(c.chainId)
-    ? `https://find3r.app/artwork.html?chain=${c.chainId}&contract=${c.address}&token=${encodeURIComponent(id)}&adapter=auto`
+    ? `https://find3r.thebenmeadows.com/artwork.html?chain=${c.chainId}&contract=${c.address}&token=${encodeURIComponent(id)}&adapter=auto`
     : null);
 
 /* A token caption: a find3r link where find3r can show it, plain text elsewhere. */
@@ -452,7 +452,7 @@ function detailLinks(c) {
     const sample = mintCursor(c).first();
     const has = sample !== undefined;
     return [
-        FIND3R_CHAINS.has(c.chainId) && ['find3r', `https://find3r.app/#address=${c.address}&chain=${c.chainId}`],
+        FIND3R_CHAINS.has(c.chainId) && ['find3r', `https://find3r.thebenmeadows.com/#address=${c.address}&chain=${c.chainId}`],
         ['ABX inspector', `https://resolver.abx.io/introspect/${c.chainId}/${c.address}`],
         has && OCC_CHAIN[c.chainId] && ['OnChainChecker', `https://onchainchecker.xyz/collection/${OCC_CHAIN[c.chainId]}/${c.address}/${sample}`],
         has && FOC_CHAIN[c.chainId] && ['Fully On Chain', `https://www.fullyonchain.art/scan/${FOC_CHAIN[c.chainId]}/${c.address}/${sample}`],
