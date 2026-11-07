@@ -2,8 +2,9 @@
 
    Every 15 minutes: read new factory Deployed events on each chain, add up to a
    few new collections (name, image, mint terms, deployer name), refresh the
-   mint terms of a few existing collections in rotation, and write
-   contracts.json to the R2 bucket the site is served from.
+   mint terms of a few existing collections in rotation, copy a few images that live on
+   other hosts into img/ (copies.js), and write contracts.json to the R2 bucket the site
+   is served from.
 
    Then, with every subrequest the collections job left over: refresh the owner data of
    ABX resolver collections in rotation (oldest first) and, once every collection has been read at
@@ -25,6 +26,7 @@
 
 import { validateEntry, factsOnlyEntry } from './validate.js';
 import { scanList, ownerCounts, buildOwnersIndex, collectionKey } from './owners.js';
+import { pickCopies, copyBatch, COPY_RESERVE } from './copies.js';
 
 const CHAINS = [
   { id: 1, name: 'Ethereum', confirm: 12 },
@@ -67,7 +69,7 @@ function budgetFor() {
     async fetch(url, init) {
       if (++used > MAX_SUBREQUESTS) throw new OutOfBudget(`subrequest budget spent (${MAX_SUBREQUESTS})`);
       // manual: a redirect hop would cost an uncounted subrequest, and the ABX key must never follow one
-      return fetch(url, { ...init, redirect: 'manual', signal: AbortSignal.timeout(15000) });
+      return fetch(url, { ...init, redirect: 'manual', signal: (init && init.signal) || AbortSignal.timeout(15000) });
     },
     left: () => MAX_SUBREQUESTS - used,
   };
@@ -327,17 +329,29 @@ async function refreshCollections(env, b, state) {
       console.warn('refresh skipped', c.chainId, c.address, e.message); // keep the last good terms
     }
   }
+  // The copy batch is chosen and stamped before contracts.json is written, so a run killed while
+  // copying keeps everything above and moves those images to the back of the queue.
+  const copies = b.left() > COPY_RESERVE ? pickCopies(data.contracts, now()) : [];
   data.contracts.sort((a, c2) => c2.timestamp - a.timestamp);
   // When no chain could be read, the data is not fresh: leave the timestamp, so the page's stale
   // notice and the hourly dead-man alert both see the outage.
   const anyRead = failed.length < CHAINS.length;
   if (anyRead) data.generated = now();
   data.failedChains = failed;
-  await env.BUCKET.put('contracts.json', JSON.stringify(data), { httpMetadata: { contentType: 'application/json', cacheControl: 'public, max-age=60' } });
+  await putContracts(env, data);
   // Saved progress moves only now that contracts.json holds the new collections.
   state.queue = state.queue.filter((q) => !done.has(q) && (q.attempts || 0) < MAX_ATTEMPTS);
   if (anyRead) state.lastSuccess = now();
+  if (copies.length) {
+    try {
+      if (await copyBatch(env, b, copies, now(), (e) => e instanceof OutOfBudget)) await putContracts(env, data);
+    } catch (e) {
+      console.warn('image copies skipped', e.message); // contracts.json above already holds this run's data
+    }
+  }
 }
+
+const putContracts = (env, data) => env.BUCKET.put('contracts.json', JSON.stringify(data), { httpMetadata: { contentType: 'application/json', cacheControl: 'public, max-age=60' } });
 
 /* ── owner index ─────────────────────────────────────────────────────────── */
 

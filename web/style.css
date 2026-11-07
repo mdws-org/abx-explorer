@@ -78,8 +78,7 @@ code, .mono {
     padding: 0;
     cursor: pointer;
 }
-.running-head a:hover,
-.running-head button:hover { color: var(--accent); }
+@media (hover: hover) { .running-head a:hover, .running-head button:hover { color: var(--accent); } }
 #theme-toggle::before { content: "Light"; }
 html.light #theme-toggle::before { content: "Dark"; }
 @media (prefers-color-scheme: light) {
@@ -117,7 +116,7 @@ h1 {
     text-transform: uppercase;
 }
 .toc a { text-decoration: none; color: var(--ink); }
-.toc a:hover { color: var(--accent); }
+@media (hover: hover) { .toc a:hover { color: var(--accent); } }
 
 section { margin-top: 56px; scroll-margin-top: 16px; }
 .sec-head {
@@ -140,7 +139,7 @@ h2 {
     color: var(--ink-soft);
     text-decoration: none;
 }
-a.sec-aside:hover { color: var(--accent); }
+@media (hover: hover) { a.sec-aside:hover { color: var(--accent); } }
 .sec-aside .clear {
     font: inherit;
     letter-spacing: inherit;
@@ -152,7 +151,7 @@ a.sec-aside:hover { color: var(--accent); }
     padding: 0;
     cursor: pointer;
 }
-.sec-aside .clear:hover { color: var(--accent); }
+@media (hover: hover) { .sec-aside .clear:hover { color: var(--accent); } }
 .disclose, .hint {
     font-size: 0.78rem;
     color: var(--ink-soft);
@@ -191,7 +190,7 @@ a.sec-aside:hover { color: var(--accent); }
 .log.compact li { grid-template-columns: 6.5em 1fr; padding: 10px 0; }
 .log.compact h3 { font-size: 0.88rem; margin: 0; }
 .log.compact h3 a { text-decoration: none; }
-.log.compact h3 a:hover { color: var(--accent); }
+@media (hover: hover) { .log.compact h3 a:hover { color: var(--accent); } }
 .log.compact p { font-size: 0.8rem; color: var(--ink-soft); }
 .log .open { color: var(--accent); }
 .log time { font-size: 0.8rem; color: var(--ink-soft); padding-top: 2px; }
@@ -211,7 +210,7 @@ a.sec-aside:hover { color: var(--accent); }
 .log p { margin: 0; font-size: 0.9rem; max-width: 70ch; }
 .log .src { margin-top: 6px; font-size: 0.75rem; color: var(--ink-soft); }
 .log .src a { text-decoration: none; border-bottom: 1px solid var(--rule); }
-.log .src a:hover { color: var(--accent); }
+@media (hover: hover) { .log .src a:hover { color: var(--accent); } }
 @media (max-width: 560px) {
     .log li { grid-template-columns: 1fr; }
 }
@@ -226,7 +225,7 @@ a.sec-aside:hover { color: var(--accent); }
     padding: 0 0 1px;
     cursor: pointer;
 }
-.more:hover { color: var(--accent); }
+@media (hover: hover) { .more:hover { color: var(--accent); } }
 
 /* Controls */
 .controls {
@@ -236,6 +235,7 @@ a.sec-aside:hover { color: var(--accent); }
     align-items: baseline;
     margin: 18px 0 0;
 }
+/* css-touch-lint: allow (16px under pointer: coarse at the end of this file) */
 .controls input {
     background: transparent;
     border: 0;
@@ -246,7 +246,7 @@ a.sec-aside:hover { color: var(--accent); }
     font-size: 0.9rem;
     width: min(260px, 100%);
 }
-.controls input:focus { outline: none; border-bottom-color: var(--ink); }
+.controls input:focus { border-bottom-color: var(--ink); }
 .chips { display: inline-flex; flex-wrap: wrap; gap: 4px 14px; }
 .chip {
     background: transparent;
@@ -258,7 +258,7 @@ a.sec-aside:hover { color: var(--accent); }
     font-size: 0.82rem;
     cursor: pointer;
 }
-.chip:hover { color: var(--accent); }
+@media (hover: hover) { .chip:hover { color: var(--accent); } }
 .chip.on { color: var(--accent); border-bottom-color: var(--accent); }
 .chip .c { color: var(--ink-soft); margin-left: 5px; font-size: 0.75rem; }
 
@@ -284,7 +284,8 @@ table.dir {
     font: inherit; letter-spacing: inherit; text-transform: inherit;
     color: inherit; background: none; border: 0; padding: 0; cursor: pointer;
 }
-.dir th button.on, .dir th button:hover { color: var(--accent); }
+.dir th button.on { color: var(--accent); }
+@media (hover: hover) { .dir th button:hover { color: var(--accent); } }
 .dir th button[data-dir]:not([data-dir=""])::after { content: " " attr(data-dir); }
 @media (max-width: 640px) {
     .dir th:nth-child(2), .dir td.kind,
@@ -311,13 +312,13 @@ table.dir {
 }
 .dir .r { text-align: right; padding-right: 0; }
 .dir a { text-decoration: none; }
-.dir a:hover { color: var(--accent); }
+@media (hover: hover) { .dir a:hover { color: var(--accent); } }
 .dir tr.pick { cursor: pointer; }
-.dir tr.pick:hover td { color: var(--accent); }
+@media (hover: hover) { .dir tr.pick:hover td { color: var(--accent); } }
 .empty { padding: 18px 0; color: var(--ink-soft); font-size: 0.85rem; }
 .shared { margin-top: 18px; font-size: 0.82rem; }
 .shared summary { cursor: pointer; color: var(--ink-soft); }
-.shared summary:hover { color: var(--accent); }
+@media (hover: hover) { .shared summary:hover { color: var(--accent); } }
 .dir.small { margin-top: 8px; font-size: 0.78rem; }
 
 /* Gallery */
@@ -346,6 +347,25 @@ table.dir {
 }
 .card img { width: 100%; height: 100%; object-fit: contain; display: block; }
 .card.blank .img { border-style: dashed; }
+/* Shown when every address of an image failed: the collection's initials in a ring. */
+.initials {
+    width: 100%;
+    height: 100%;
+    display: grid;
+    place-items: center;
+    container-type: size;
+}
+.initials span {
+    width: 84%;
+    aspect-ratio: 1;
+    border: 1px solid var(--rule);
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    color: var(--title);
+    font-size: 26cqmin;
+    line-height: 1;
+}
 .card .n {
     color: var(--title);
     font-size: 0.84rem;
@@ -359,7 +379,7 @@ table.dir {
 @media (max-width: 560px) {
     .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 12px; }
 }
-.card:hover .n { color: var(--accent); }
+@media (hover: hover) { .card:hover .n { color: var(--accent); } }
 
 dialog {
     background: var(--bg);
@@ -403,7 +423,7 @@ dialog .links {
     white-space: nowrap;
 }
 dialog .links a { text-decoration: none; border-bottom: 1px solid var(--rule); }
-dialog .links a:hover { color: var(--accent); }
+@media (hover: hover) { dialog .links a:hover { color: var(--accent); } }
 .dir td.open, .card .y.open { color: var(--accent); }
 .card .y { font-size: 0.74rem; color: var(--ink-soft); margin-top: 2px; }
 dialog { max-width: 720px; }
@@ -426,10 +446,10 @@ dialog { max-width: 720px; }
 .mint .img { aspect-ratio: 1; display: grid; place-items: center; overflow: hidden; }
 .mint img, .mint iframe { width: 100%; height: 100%; object-fit: contain; border: 0; display: block; }
 .mint .n { font-size: 0.74rem; color: var(--ink-soft); margin-top: 4px; }
-.mint:hover .n { color: var(--accent); }
+@media (hover: hover) { .mint:hover .n { color: var(--accent); } }
 .mint a { text-decoration: none; color: inherit; }
 .mint .n { display: block; }
-.mint a.n:hover { color: var(--accent); }
+@media (hover: hover) { .mint a.n:hover { color: var(--accent); } }
 .mint button.live {
     width: 100%;
     height: 100%;
@@ -441,9 +461,10 @@ dialog { max-width: 720px; }
     cursor: pointer;
 }
 .mint button.live span { display: block; font-size: 0.68rem; color: var(--ink-soft); margin-top: 4px; overflow-wrap: anywhere; }
-.mint button.live:hover { color: var(--accent); border-color: var(--ink); }
+@media (hover: hover) { .mint button.live:hover { color: var(--accent); border-color: var(--ink); } }
 .dir td.name a { text-decoration: none; color: inherit; }
-.dir td.name a:hover, .dir td.name a:focus-visible { color: var(--accent); }
+.dir td.name a:focus-visible { color: var(--accent); }
+@media (hover: hover) { .dir td.name a:hover { color: var(--accent); } }
 .mint .y { font-size: 0.72rem; color: var(--ink-soft); }
 .mint .y a { border-bottom: 1px solid var(--rule); }
 .mints.ours { margin-top: 14px; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
@@ -490,5 +511,10 @@ dialog { max-width: 720px; }
 }
 .site-footer a { color: inherit; text-decoration: none; border-bottom: 1px solid var(--rule); }
 .site-footer .footer-line a { border: 0; }
-.site-footer a:hover { color: var(--accent); }
+@media (hover: hover) { .site-footer a:hover { color: var(--accent); } }
 .site-footer .provenance { max-width: 46em; margin: 0 auto 1.2rem; }
+
+/* Touch screens: 16px keeps iOS Safari from zooming the page when the search box is tapped. */
+@media (pointer: coarse) {
+    .controls input { font-size: 16px; }
+}

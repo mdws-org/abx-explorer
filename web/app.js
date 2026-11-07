@@ -280,7 +280,7 @@ function renderData() {
     const missing = rows.filter((c) => !imageSrc(c.image) && !isTest(c)).length;
     $('#grid').innerHTML = withImg.map((c) => `
         <button class="card" type="button" data-k="${c.chainId}:${c.address}">
-            <div class="img"><img src="${esc(imageSrc(c.image))}" alt="" loading="lazy" /></div>
+            <div class="img">${imgTag(sources(c), c.name, { thumb: true })}</div>
             <div class="n">${esc(c.name || 'Unnamed')}</div>
             ${c.sale && c.sale.state === 'open' ? `<div class="y open">${esc(mintLabel(c))}</div>` : ''}
         </button>`).join('');
@@ -358,6 +358,61 @@ function imageSrc(src) {
     return null;
 }
 
+/* Images load from our own copy first (the Worker keeps copies of images on other hosts under img/), then
+   from the original address, then fall back to an initials card, so a blocked or dead host never shows
+   a broken image. On the live host Cloudflare serves gallery thumbnails resized; anywhere else (a mirror,
+   localhost) has no /cdn-cgi/image route and loads the files whole. */
+const RESIZE = location.hostname === 'abx.thebenmeadows.com';
+const OWN = /^img\/[\w.-]+$/;
+const resized = (path, w) => `/cdn-cgi/image/width=${w},fit=scale-down,format=auto,onerror=redirect/${path}`;
+
+function sources(c) {
+    const copy = c.copy && typeof c.copy.key === 'string' && OWN.test(c.copy.key) ? c.copy.key : null;
+    return [...new Set([copy, imageSrc(c.image)].filter(Boolean))];
+}
+
+function initials(name) {
+    const words = (typeof name === 'string' ? name : '').split(/\s+/).filter((w) => /[\p{L}\p{N}]/u.test(w));
+    const letters = words.slice(0, 2).map((w) => [...w.replace(/^[^\p{L}\p{N}]+/u, '')][0] || '').join('').toUpperCase();
+    return `<span class="initials" aria-hidden="true"><span>${esc(letters || '?')}</span></span>`;
+}
+
+/* Addresses that already failed on this visit, so a re-render (search, filters) does not retry them. */
+const FAILED = new Set();
+
+/** An <img> for `list` (first choice first); `thumb` asks for a resized gallery thumbnail.
+    `name` comes from metadata and may be any JSON value. */
+function imgTag(list, name, { thumb = false, lazy = true } = {}) {
+    const label = typeof name === 'string' ? name.slice(0, 200) : '';
+    const live = list.filter((u) => !FAILED.has(u));
+    if (!live.length) return initials(label);
+    const [first, ...rest] = live;
+    let src = `src="${esc(first)}"`;
+    if (thumb && RESIZE && OWN.test(first) && !first.endsWith('.svg') && !FAILED.has(resized(first, 600))) {
+        src = `src="${esc(resized(first, 600))}" srcset="${esc(resized(first, 600))} 600w, ${esc(resized(first, 1200))} 1200w"`
+            + ' sizes="(max-width: 640px) 50vw, 300px"';
+        rest.unshift(first); // a failed resize falls back to the file itself before the outside host
+    }
+    return `<img ${src} alt=""${lazy ? ' loading="lazy"' : ''} data-next="${esc(JSON.stringify(rest))}" data-name="${esc(label)}" />`;
+}
+
+/* An image that fails moves to its next address; the last failure becomes the initials card. */
+function onImageError(e) {
+    const img = e.target;
+    if (!(img instanceof HTMLImageElement) || !img.hasAttribute('data-next')) return;
+    FAILED.add(img.getAttribute('src'));
+    let next = [];
+    try { next = JSON.parse(img.dataset.next); } catch { /* treat as none left */ }
+    img.removeAttribute('srcset');
+    img.removeAttribute('sizes');
+    if (Array.isArray(next) && next.length) {
+        img.dataset.next = JSON.stringify(next.slice(1));
+        img.src = next[0];
+    } else {
+        img.outerHTML = initials(img.dataset.name);
+    }
+}
+
 /* Live views: https, ipfs (via gateway) and data:text/html only; always in an opaque-origin sandbox. */
 function liveSrc(src) {
     if (typeof src !== 'string' || src.length > MAX_URI_BYTES) return null;
@@ -386,7 +441,7 @@ async function loadToken(c, id, holder) {
 
 function art(t) {
     const img = imageSrc(t.meta.image);
-    if (img) return `<img src="${esc(img)}" alt="" loading="lazy" />`;
+    if (img) return imgTag([img], t.meta.name);
     const live = liveSrc(t.meta.animation_url);
     if (!live) return '';
     let host = 'on-chain HTML';
@@ -473,10 +528,10 @@ function openDetail(key, opener) {
     const c = state.all.find((x) => `${x.chainId}:${x.address}` === key);
     if (!c) return;
     const dlg = $('#dlg');
-    const img = imageSrc(c.image);
+    const imgs = sources(c);
     dlg.innerHTML = `
         <button class="close" aria-label="Close">&times;</button>
-        <div class="big">${img ? `<img src="${esc(img)}" alt="" />` : '<span class="ph">No preview</span>'}</div>
+        <div class="big">${imgs.length ? imgTag(imgs, c.name, { lazy: false }) : '<span class="ph">No preview</span>'}</div>
         <h3 id="dlg-title">${esc(c.name || 'Unnamed')} <span class="sym">${esc(c.symbol || '')}</span></h3>
         <dl>
             <dt>Kind</dt><dd>${esc(c.kind)}</dd>
@@ -556,6 +611,7 @@ function wire() {
         openDetail(hit.dataset.k, hit);
     });
     $('#dlg').addEventListener('click', (e) => { if (e.target.id === 'dlg') e.target.close(); });
+    document.addEventListener('error', onImageError, true); // image errors do not bubble: listen in the capture phase
     $('#shared').innerHTML = SHARED.map(([n, a]) => `<tr><td>${n}</td><td class="mono">${a}</td></tr>`).join('');
 }
 
