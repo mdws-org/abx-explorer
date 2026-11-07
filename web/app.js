@@ -361,7 +361,7 @@ function imageSrc(src) {
 /* Images load from our own copy first (the Worker keeps copies of images on other hosts under img/), then
    from the original address, then fall back to an initials card, so a blocked or dead host never shows
    a broken image. On the live host Cloudflare serves gallery thumbnails resized; anywhere else (a mirror,
-   localhost) has no /cdn-cgi/image route and loads the files whole. */
+   a local copy) has no /cdn-cgi/image route and loads the files whole. */
 const RESIZE = location.hostname === 'abx.thebenmeadows.com';
 const OWN = /^img\/[\w.-]+$/;
 const resized = (path, w) => `/cdn-cgi/image/width=${w},fit=scale-down,format=auto,onerror=redirect/${path}`;
