@@ -86,7 +86,7 @@ function validMint(m) {
 }
 
 /* ABX's own rehearsal, canary and acceptance contracts: listed in the directory, kept out of the gallery and the news. */
-const TEST_NAME = /^(Rehearsal \d{4}-\d{2}-\d{2}|ABX .*(Canary|Acceptance))$/;
+const TEST_NAME = /^(Rehearsal \d{4}-\d{2}-\d{2}|ABX .*(Canary|Acceptance|QA( \d{4}-\d{2}-\d{2})?))$/;
 const isTest = (c) => TEST_NAME.test(c.name || '');
 
 /* ── names and mint terms ────────────────────────────────────────────────── */
@@ -268,7 +268,7 @@ function renderData() {
     $('#gal-count').innerHTML = note(rows.filter(inGallery).length, state.all.filter(inGallery).length);
     $('#rows').innerHTML = rows.length ? rows.map((c) => `
         <tr id="c-${c.chainId}-${c.address}">
-            <td class="name"><a href="#c-${c.chainId}-${c.address}" data-k="${c.chainId}:${c.address}">${esc(c.name || 'Unnamed')}</a>${distinctSymbol(c) ? `<span class="sym">${esc(c.symbol)}</span>` : ''}</td>
+            <td class="name"><a href="#c-${c.chainId}-${c.address}" data-k="${c.chainId}:${c.address}">${esc(c.name || 'Unnamed')}</a>${distinctSymbol(c) ? `<span class="sym">${esc(c.symbol)}</span>` : ''}${isTest(c) ? '<span class="test" title="One of ABX\'s own rehearsal, canary or acceptance contracts">ABX test</span>' : ''}</td>
             <td class="kind">${esc(c.kind)}</td>
             <td>${esc(c.chain)}</td>
             <td>${who(c.chainId, c.address)}</td>
@@ -398,7 +398,7 @@ function art(t) {
 /* find3r's own artwork-page link format (its "Copy artwork link"); find3r reads Ethereum, Base and Arbitrum. */
 const FIND3R_CHAINS = new Set([1, 8453, 42161]);
 const find3rToken = (c, id) => (FIND3R_CHAINS.has(c.chainId)
-    ? `https://find3r.app/artwork.html?chain=${c.chainId}&contract=${c.address}&token=${encodeURIComponent(id)}&adapter=auto`
+    ? `https://find3r.thebenmeadows.com/artwork.html?chain=${c.chainId}&contract=${c.address}&token=${encodeURIComponent(id)}&adapter=auto`
     : null);
 
 /* A token caption: a find3r link where find3r can show it, plain text elsewhere. */
@@ -452,7 +452,7 @@ function detailLinks(c) {
     const sample = mintCursor(c).first();
     const has = sample !== undefined;
     return [
-        FIND3R_CHAINS.has(c.chainId) && ['find3r', `https://find3r.app/#address=${c.address}&chain=${c.chainId}`],
+        FIND3R_CHAINS.has(c.chainId) && ['find3r', `https://find3r.thebenmeadows.com/#address=${c.address}&chain=${c.chainId}`],
         ['ABX inspector', `https://resolver.abx.io/introspect/${c.chainId}/${c.address}`],
         has && OCC_CHAIN[c.chainId] && ['OnChainChecker', `https://onchainchecker.xyz/collection/${OCC_CHAIN[c.chainId]}/${c.address}/${sample}`],
         has && FOC_CHAIN[c.chainId] && ['Fully On Chain', `https://www.fullyonchain.art/scan/${FOC_CHAIN[c.chainId]}/${c.address}/${sample}`],
@@ -594,7 +594,8 @@ async function main() {
     const chains = new Set(state.all.map((c) => c.chain)).size;
     const failed = data.value.failedChains || [];
     const when = new Date(data.value.generated * 1000).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
-    $('#meta').textContent = `${state.all.length} collections on ${chains} chains · read ${when}${failed.length ? ` · not yet read: ${failed.join(', ')}` : ''}`;
+    const stale = Date.now() / 1000 - data.value.generated > 3600 ? ' · this data is over an hour old, so recent changes may be missing' : '';
+    $('#meta').textContent = `${state.all.length} collections on ${chains} chains · read ${when}${failed.length ? ` · not yet read: ${failed.join(', ')}` : ''}${stale}`;
     renderLog(news.status === 'fulfilled' ? news.value.entries || [] : [], state.all);
     renderFilters();
     renderData();
