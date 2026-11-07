@@ -8,7 +8,7 @@ The page reads the six ABX factory contracts on Ethereum, Base, Arbitrum and Rob
 
 - **News**: ABX releases and new collections, side by side. News entries are written automatically from public sources and link those sources.
 - **Directory**: every collection with its kind, chain, contract, deployer (ENS or Basename where one is set), mint status and deploy date. Search covers names, addresses and deployer names.
-- **Gallery**: the collections that carry an image in their onchain metadata.
+- **Gallery**: the collections that carry an image in their onchain metadata. Images hosted elsewhere are copied to the site daily (`worker/copies.js`); the page loads the copy first, then the original, then shows the collection's initials, so a blocked or offline host never leaves a broken image.
 - **Detail view**: a collection's terms and minter, links to find3r, OnChainChecker, Fully On Chain, the explorer and OpenSea, and its individual mints, read from the chain in the browser.
 - **Minted here**: free mints collected by the page's wallet.
 - **Mint page** (`mint.html?chain=<id>&token=<address>[&id=<edition>]`): mints one token from a free sale on the shared ABX minter to the page's wallet, with a maximum price of 0. If the sale is repriced before the transaction is mined, the contract rejects it.

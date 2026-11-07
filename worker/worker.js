@@ -2,8 +2,9 @@
 
    Every 15 minutes: read new factory Deployed events on each chain, add up to a
    few new collections (name, image, mint terms, deployer name), refresh the
-   mint terms of a few existing collections in rotation, and write
-   contracts.json to the R2 bucket the site is served from.
+   mint terms of a few existing collections in rotation, copy a few images that live on
+   other hosts into img/ (copies.js), and write contracts.json to the R2 bucket the site
+   is served from.
 
    Then, with every subrequest the collections job left over: refresh the owner data of
    ABX resolver collections in rotation (oldest first) and, once every collection has been read at
@@ -25,6 +26,7 @@
 
 import { validateEntry, factsOnlyEntry } from './validate.js';
 import { scanList, ownerCounts, buildOwnersIndex, collectionKey } from './owners.js';
+import { refreshCopies } from './copies.js';
 
 const CHAINS = [
   { id: 1, name: 'Ethereum', confirm: 12 },
@@ -327,6 +329,7 @@ async function refreshCollections(env, b, state) {
       console.warn('refresh skipped', c.chainId, c.address, e.message); // keep the last good terms
     }
   }
+  if (b.left() > 12) await refreshCopies(env, b, data.contracts, now(), (e) => e instanceof OutOfBudget);
   data.contracts.sort((a, c2) => c2.timestamp - a.timestamp);
   // When no chain could be read, the data is not fresh: leave the timestamp, so the page's stale
   // notice and the hourly dead-man alert both see the outage.

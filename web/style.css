@@ -346,6 +346,25 @@ table.dir {
 }
 .card img { width: 100%; height: 100%; object-fit: contain; display: block; }
 .card.blank .img { border-style: dashed; }
+/* Shown when every address of an image failed: the collection's initials in a ring. */
+.initials {
+    width: 100%;
+    height: 100%;
+    display: grid;
+    place-items: center;
+    container-type: size;
+}
+.initials span {
+    width: 84%;
+    aspect-ratio: 1;
+    border: 1px solid var(--rule);
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    color: var(--title);
+    font-size: 26cqmin;
+    line-height: 1;
+}
 .card .n {
     color: var(--title);
     font-size: 0.84rem;
