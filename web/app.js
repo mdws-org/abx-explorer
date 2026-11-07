@@ -372,27 +372,35 @@ function sources(c) {
 }
 
 function initials(name) {
-    const words = String(name || '').split(/\s+/).filter((w) => /[\p{L}\p{N}]/u.test(w));
+    const words = (typeof name === 'string' ? name : '').split(/\s+/).filter((w) => /[\p{L}\p{N}]/u.test(w));
     const letters = words.slice(0, 2).map((w) => [...w.replace(/^[^\p{L}\p{N}]+/u, '')][0] || '').join('').toUpperCase();
     return `<span class="initials" aria-hidden="true"><span>${esc(letters || '?')}</span></span>`;
 }
 
-/** An <img> for `list` (first choice first); `thumb` asks for a resized gallery thumbnail. */
+/* Addresses that already failed on this visit, so a re-render (search, filters) does not retry them. */
+const FAILED = new Set();
+
+/** An <img> for `list` (first choice first); `thumb` asks for a resized gallery thumbnail.
+    `name` comes from metadata and may be any JSON value. */
 function imgTag(list, name, { thumb = false, lazy = true } = {}) {
-    if (!list.length) return initials(name);
-    const [first, ...rest] = list;
+    const label = typeof name === 'string' ? name.slice(0, 200) : '';
+    const live = list.filter((u) => !FAILED.has(u));
+    if (!live.length) return initials(label);
+    const [first, ...rest] = live;
     let src = `src="${esc(first)}"`;
-    if (thumb && RESIZE && OWN.test(first) && !first.endsWith('.svg')) {
+    if (thumb && RESIZE && OWN.test(first) && !first.endsWith('.svg') && !FAILED.has(resized(first, 600))) {
         src = `src="${esc(resized(first, 600))}" srcset="${esc(resized(first, 600))} 600w, ${esc(resized(first, 1200))} 1200w"`
             + ' sizes="(max-width: 640px) 50vw, 300px"';
+        rest.unshift(first); // a failed resize falls back to the file itself before the outside host
     }
-    return `<img ${src} alt=""${lazy ? ' loading="lazy"' : ''} data-next="${esc(JSON.stringify(rest))}" data-name="${esc(name || '')}" />`;
+    return `<img ${src} alt=""${lazy ? ' loading="lazy"' : ''} data-next="${esc(JSON.stringify(rest))}" data-name="${esc(label)}" />`;
 }
 
 /* An image that fails moves to its next address; the last failure becomes the initials card. */
 function onImageError(e) {
     const img = e.target;
     if (!(img instanceof HTMLImageElement) || !img.hasAttribute('data-next')) return;
+    FAILED.add(img.getAttribute('src'));
     let next = [];
     try { next = JSON.parse(img.dataset.next); } catch { /* treat as none left */ }
     img.removeAttribute('srcset');

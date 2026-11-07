@@ -26,7 +26,7 @@
 
 import { validateEntry, factsOnlyEntry } from './validate.js';
 import { scanList, ownerCounts, buildOwnersIndex, collectionKey } from './owners.js';
-import { refreshCopies } from './copies.js';
+import { pickCopies, copyBatch, COPY_RESERVE } from './copies.js';
 
 const CHAINS = [
   { id: 1, name: 'Ethereum', confirm: 12 },
@@ -69,7 +69,7 @@ function budgetFor() {
     async fetch(url, init) {
       if (++used > MAX_SUBREQUESTS) throw new OutOfBudget(`subrequest budget spent (${MAX_SUBREQUESTS})`);
       // manual: a redirect hop would cost an uncounted subrequest, and the ABX key must never follow one
-      return fetch(url, { ...init, redirect: 'manual', signal: AbortSignal.timeout(15000) });
+      return fetch(url, { ...init, redirect: 'manual', signal: (init && init.signal) || AbortSignal.timeout(15000) });
     },
     left: () => MAX_SUBREQUESTS - used,
   };
@@ -329,18 +329,29 @@ async function refreshCollections(env, b, state) {
       console.warn('refresh skipped', c.chainId, c.address, e.message); // keep the last good terms
     }
   }
-  if (b.left() > 12) await refreshCopies(env, b, data.contracts, now(), (e) => e instanceof OutOfBudget);
+  // The copy batch is chosen and stamped before contracts.json is written, so a run killed while
+  // copying keeps everything above and moves those images to the back of the queue.
+  const copies = b.left() > COPY_RESERVE ? pickCopies(data.contracts, now()) : [];
   data.contracts.sort((a, c2) => c2.timestamp - a.timestamp);
   // When no chain could be read, the data is not fresh: leave the timestamp, so the page's stale
   // notice and the hourly dead-man alert both see the outage.
   const anyRead = failed.length < CHAINS.length;
   if (anyRead) data.generated = now();
   data.failedChains = failed;
-  await env.BUCKET.put('contracts.json', JSON.stringify(data), { httpMetadata: { contentType: 'application/json', cacheControl: 'public, max-age=60' } });
+  await putContracts(env, data);
   // Saved progress moves only now that contracts.json holds the new collections.
   state.queue = state.queue.filter((q) => !done.has(q) && (q.attempts || 0) < MAX_ATTEMPTS);
   if (anyRead) state.lastSuccess = now();
+  if (copies.length) {
+    try {
+      if (await copyBatch(env, b, copies, now(), (e) => e instanceof OutOfBudget)) await putContracts(env, data);
+    } catch (e) {
+      console.warn('image copies skipped', e.message); // contracts.json above already holds this run's data
+    }
+  }
 }
+
+const putContracts = (env, data) => env.BUCKET.put('contracts.json', JSON.stringify(data), { httpMetadata: { contentType: 'application/json', cacheControl: 'public, max-age=60' } });
 
 /* ── owner index ─────────────────────────────────────────────────────────── */
 

@@ -1,1 +1,1 @@
-{"name":"abx-refresh","private":true,"type":"module","scripts":{"test":"node --test validate.test.mjs owners.test.mjs worker.test.mjs"},"devDependencies":{"wrangler":"^4.156.0"}}
+{"name":"abx-refresh","private":true,"type":"module","scripts":{"test":"node --test validate.test.mjs owners.test.mjs worker.test.mjs copies.test.mjs"},"devDependencies":{"wrangler":"^4.156.0"}}
