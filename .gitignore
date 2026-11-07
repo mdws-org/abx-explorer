@@ -6,3 +6,6 @@ data/contracts.json
 web/contracts.json
 web/ours.json
 web/img/
+.dev.vars
+node_modules/
+.wrangler/

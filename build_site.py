@@ -12,7 +12,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 SRC, OUT = HERE / "web", HERE / "site"
-FILES = ["index.html", "mint.html", "app.js", "mint.js", "style.css", "theme.js", "publicsans.woff2",
+FILES = ["index.html", "mint.html", "favicon.svg", "app.js", "mint.js", "style.css", "theme.js", "publicsans.woff2",
          "contracts.json", "news.json", "ours.json"]
 GENERATED = {"contracts.json", "ours.json"}
 
