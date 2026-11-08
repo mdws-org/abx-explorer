@@ -98,7 +98,7 @@ h1 {
     letter-spacing: -0.02em;
     margin: 18px 0 8px;
 }
-.sub { max-width: 64ch; margin: 0 0 10px; }
+.sub { max-width: 60ch; margin: 0 0 10px; }
 .meta { font-size: 0.85rem; color: var(--ink-soft); margin: 0; }
 
 .num {
@@ -191,7 +191,7 @@ h2 {
 .log.compact h3 { font-size: 0.88rem; margin: 0; }
 .log.compact h3 a { text-decoration: none; }
 @media (hover: hover) { .log.compact h3 a:hover { color: var(--accent); } }
-.log.compact p { font-size: 0.8rem; color: var(--ink-soft); }
+.log.compact p { font-size: 0.875rem; color: var(--ink-soft); }
 .log .open { color: var(--accent); }
 .log time { font-size: 0.8rem; color: var(--ink-soft); padding-top: 2px; }
 .log .tag {
@@ -207,7 +207,7 @@ h2 {
     font-weight: 600;
     margin: 0 0 4px;
 }
-.log p { margin: 0; font-size: 0.9rem; max-width: 70ch; }
+.log p { margin: 0; font-size: 1rem; max-width: 60ch; }
 .log .src { margin-top: 6px; font-size: 0.75rem; color: var(--ink-soft); }
 .log .src a { text-decoration: none; border-bottom: 1px solid var(--rule); }
 @media (hover: hover) { .log .src a:hover { color: var(--accent); } }
