@@ -3,10 +3,11 @@
 
 Copies real files (symlinks resolved), drops the review banner and the meta CSP
 (the live CSP is a Cloudflare response header), and refuses to finish if any
-local-only reference survives.
+local-only reference survives or the type check (tools/check-measure.mjs) fails.
 """
 import re
 import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -40,6 +41,13 @@ def build():
                 for m in re.findall(r"127\.0\.0\.1|localhost|mock-flag|Mockup for review", f.read_text())]
     if problems:
         sys.exit("local-only references left: " + ", ".join(problems))
+    # Type gate: the same line-length and body-size rules as thebenmeadows.com.
+    tools = HERE / "tools"
+    if not (tools / "node_modules" / "playwright-core").is_dir():
+        sys.exit("type check cannot run: npm ci --prefix tools")
+    run = subprocess.run(["node", str(tools / "check-measure.mjs"), str(OUT)], capture_output=True, text=True)
+    if run.returncode != 0 or run.stdout.strip():
+        sys.exit("type check failed:\n" + (run.stdout.strip() or run.stderr.strip()[-400:]))
     count = sum(1 for f in OUT.rglob("*") if f.is_file())
     print(f"built {count} files in {OUT}")
 
