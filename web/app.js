@@ -89,6 +89,19 @@ function validMint(m) {
 const TEST_NAME = /^(Rehearsal \d{4}-\d{2}-\d{2}|ABX .*(Canary|Acceptance|QA( \d{4}-\d{2}-\d{2})?))$/;
 const isTest = (c) => TEST_NAME.test(c.name || '');
 
+/* ABX FS orgs: Series code collections deployed by the ABX FS org factory (same address on every chain).
+   Each token is a project, a website or set of files, so the page lists them as sites, not as art. */
+const ABXFS_FACTORY = '0xc5abf9fbd94659cdfc173af30c6052700fa62798';
+const SITE_KIND = 'ABX FS site';
+const isSiteOrg = (c) => c.owner.toLowerCase() === ABXFS_FACTORY && c.symbol === 'ABXFS';
+const MAX_SITES = 12;
+const SITE_SEL = { next: '0x75794a3c', ownerOf: '0x6352211e', param: '0x6bd39222', paramData: '0x84f6687f' };
+const SITE_KEY = {
+    cid: '61627866732e6369640000000000000000000000000000000000000000000000',  // "abxfs.cid"
+    name: '61627866732e6e616d6500000000000000000000000000000000000000000000', // "abxfs.name"
+    view: '61627866732e7669657700000000000000000000000000000000000000000000', // "abxfs.view"
+};
+
 /* ── names and mint terms ────────────────────────────────────────────────── */
 
 function who(chainId, addr, name) {
@@ -500,6 +513,68 @@ function mintCursor(c) {
     };
 }
 
+/* ── ABX FS sites ────────────────────────────────────────────────────────── */
+
+/* The official gateway's address for a project; the owner's own abxfs.view URL wins when set. */
+const gatewayUrl = (c, id) => `https://${c.chainId}-${c.address.slice(2).toLowerCase()}-${id}.abxfs.app/`;
+const tokenArg = (id, key) => word(id) + key;
+
+async function paramString(c, id, key) {
+    try {
+        return abiString(await ethCall(c.chainId, c.address, SITE_SEL.paramData + tokenArg(id, key))).trim();
+    } catch {
+        return '';
+    }
+}
+
+async function readSite(c, id) {
+    const [owner, cid, name, view] = await Promise.all([
+        ethCall(c.chainId, c.address, SITE_SEL.ownerOf + word(id)).catch(() => null),
+        ethCall(c.chainId, c.address, SITE_SEL.param + tokenArg(id, SITE_KEY.cid)).catch(() => null),
+        paramString(c, id, SITE_KEY.name),
+        paramString(c, id, SITE_KEY.view),
+    ]);
+    const root = cid && cid.length >= 66 ? `0x${cid.slice(2, 66)}` : null;
+    return {
+        id,
+        owner: owner && owner.length >= 66 ? `0x${owner.slice(26, 66)}` : null,
+        root: root && !/^0x0+$/.test(root) ? root : null,
+        name,
+        view: view.startsWith('https://') ? safeHref(view) : null,
+    };
+}
+
+function siteRow(c, s, total) {
+    const label = esc(s.name || (total === 1 ? c.name : '') || `Project ${s.id}`);
+    if (!s.root) return `<li><span class="n">${label}</span> <span class="disclose">nothing published yet</span></li>`;
+    const href = s.view || gatewayUrl(c, s.id);
+    return `<li>
+        <a class="n" href="${esc(href)}" target="_blank" rel="noopener noreferrer">${label}</a>
+        <span class="host">${esc(new URL(href).host)}</span>
+        ${s.owner ? `<span class="by">by ${who(c.chainId, s.owner)}</span>` : ''}
+        <span class="mono root" title="${esc(s.root)}">root ${short(s.root)}</span>
+    </li>`;
+}
+
+async function loadSites(c, list, note) {
+    let total;
+    try {
+        total = Number(BigInt(await ethCall(c.chainId, c.address, SITE_SEL.next)));
+    } catch {
+        note.textContent = 'Could not read the projects from chain.';
+        return;
+    }
+    if (!total) {
+        note.textContent = 'No projects yet.';
+        return;
+    }
+    const ids = [...Array(Math.min(total, MAX_SITES)).keys()];
+    const sites = [];
+    for (const id of ids) sites.push(await readSite(c, id));   // one project at a time: public RPCs throttle bursts
+    list.innerHTML = sites.map((s) => siteRow(c, s, total)).join('');
+    note.textContent = `${total} project${total === 1 ? '' : 's'}${total > MAX_SITES ? `, first ${MAX_SITES} shown` : ''} · read live from chain. Links open the project on ABX FS's gateway unless the owner set their own address.`;
+}
+
 /* ── detail dialog ───────────────────────────────────────────────────────── */
 
 function detailLinks(c) {
@@ -551,6 +626,14 @@ function openDetail(key, opener) {
     dlg.querySelector('.close').onclick = () => dlg.close();
     dlg.onclose = () => { if (opener && opener.focus) opener.focus(); };
     dlg.showModal();
+    if (isSiteOrg(c)) {
+        dlg.querySelector('.mints-h').textContent = 'Sites';
+        dlg.querySelector('#mints').outerHTML = '<ul class="sites" id="sites" aria-live="polite"></ul>';
+        const note = dlg.querySelector('#mints-note');
+        note.textContent = 'Reading projects…';
+        loadSites(c, dlg.querySelector('#sites'), note);
+        return;
+    }
     const cursor = mintCursor(c);
     const grid = dlg.querySelector('#mints'), more = dlg.querySelector('#mints-more'), note = dlg.querySelector('#mints-note');
     if (!cursor.left()) {
@@ -647,6 +730,12 @@ async function main() {
     const [news, data] = await Promise.allSettled([getJson('news.json'), getJson('contracts.json')]);
     if (data.status !== 'fulfilled') throw new Error('contracts.json unavailable');
     state.all = (data.value.contracts || []).filter(validContract);
+    for (const c of state.all) {
+        if (isSiteOrg(c)) {
+            c.kind = SITE_KIND;
+            c.ownerName = 'ABX FS';
+        }
+    }
     const chains = new Set(state.all.map((c) => c.chain)).size;
     const failed = data.value.failedChains || [];
     const when = new Date(data.value.generated * 1000).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
