@@ -519,6 +519,17 @@ function mintCursor(c) {
 const gatewayUrl = (c, id) => `https://${c.chainId}-${c.address.slice(2).toLowerCase()}-${id}.abxfs.app/`;
 const tokenArg = (id, key) => word(id) + key;
 
+/* The from-chain viewer (mdws-org/abxfs-rs) gives each project its own hostname under VIEW_BASE and reads it
+   with no gateway. Empty until the viewer is deployed, which leaves the link out. */
+const VIEW_BASE = '';
+const VIEW_CHAINS = new Set([1, 8453, 42161]);
+function fromChainUrl(c, id) {
+    if (!VIEW_CHAINS.has(c.chainId)) return null;
+    const label = `${c.chainId}-${c.address.slice(2).toLowerCase()}-${id}`;
+    if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) return `http://${label}.localhost:8853/`;
+    return VIEW_BASE ? `https://${label}.${VIEW_BASE}/` : null;
+}
+
 async function paramString(c, id, key) {
     try {
         return abiString(await ethCall(c.chainId, c.address, SITE_SEL.paramData + tokenArg(id, key))).trim();
@@ -548,9 +559,11 @@ function siteRow(c, s, total) {
     const label = esc(s.name || (total === 1 ? c.name : '') || `Project ${s.id}`);
     if (!s.root) return `<li><span class="n">${label}</span> <span class="disclose">nothing published yet</span></li>`;
     const href = s.view || gatewayUrl(c, s.id);
+    const direct = fromChainUrl(c, s.id);
     return `<li>
         <a class="n" href="${esc(href)}" target="_blank" rel="noopener noreferrer">${label}</a>
         <span class="host">${esc(new URL(href).host)}</span>
+        ${direct ? `<a class="direct" href="${esc(direct)}" target="_blank" rel="noopener noreferrer">read from chain</a>` : ''}
         ${s.owner ? `<span class="by">by ${who(c.chainId, s.owner)}</span>` : ''}
         <span class="mono root" title="${esc(s.root)}">root ${short(s.root)}</span>
     </li>`;
@@ -572,7 +585,7 @@ async function loadSites(c, list, note) {
     const sites = [];
     for (const id of ids) sites.push(await readSite(c, id));   // one project at a time: public RPCs throttle bursts
     list.innerHTML = sites.map((s) => siteRow(c, s, total)).join('');
-    note.textContent = `${total} project${total === 1 ? '' : 's'}${total > MAX_SITES ? `, first ${MAX_SITES} shown` : ''} · read live from chain. Links open the project on ABX FS's gateway unless the owner set their own address.`;
+    note.textContent = `${total} project${total === 1 ? '' : 's'}${total > MAX_SITES ? `, first ${MAX_SITES} shown` : ''} · read live from chain. Links open the project on ABX FS's gateway unless the owner set their own address.${sites.some((x) => x.root && fromChainUrl(c, x.id)) ? ' "Read from chain" opens it with no gateway, each file checked in your browser.' : ''}`;
 }
 
 /* ── detail dialog ───────────────────────────────────────────────────────── */

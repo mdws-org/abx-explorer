@@ -481,6 +481,8 @@ dialog { max-width: 720px; }
 .sites .n { color: var(--ink); text-decoration: none; border-bottom: 1px solid var(--rule); }
 @media (hover: hover) { .sites a.n:hover { color: var(--accent); } }
 .sites .host, .sites .by, .sites .root { font-size: 0.72rem; color: var(--ink-soft); }
+.sites .direct { font-size: 0.72rem; color: var(--ink); border-bottom: 1px solid var(--rule); text-decoration: none; }
+@media (hover: hover) { .sites a.direct:hover { color: var(--accent); } }
 .sites .root { margin-left: auto; }
 @media (max-width: 640px) {
     .dir th:nth-child(5), .dir td.owner { display: none; }
