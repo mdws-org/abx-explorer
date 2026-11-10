@@ -526,7 +526,6 @@ const VIEW_CHAINS = new Set([1, 8453, 42161]);
 function fromChainUrl(c, id) {
     if (!VIEW_CHAINS.has(c.chainId)) return null;
     const label = `${c.chainId}-${c.address.slice(2).toLowerCase()}-${id}`;
-    if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) return `http://${label}.localhost:8853/`;
     return VIEW_BASE ? `https://${label}.${VIEW_BASE}/` : null;
 }
 
