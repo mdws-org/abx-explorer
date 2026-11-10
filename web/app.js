@@ -520,8 +520,8 @@ const gatewayUrl = (c, id) => `https://${c.chainId}-${c.address.slice(2).toLower
 const tokenArg = (id, key) => word(id) + key;
 
 /* The from-chain viewer (mdws-org/abxfs-rs) gives each project its own hostname under VIEW_BASE and reads it
-   with no gateway. Empty until the viewer is deployed, which leaves the link out. */
-const VIEW_BASE = '';
+   with no gateway. An empty value leaves the link out. */
+const VIEW_BASE = 'fromchain.dynv6.net';
 const VIEW_CHAINS = new Set([1, 8453, 42161]);
 function fromChainUrl(c, id) {
     if (!VIEW_CHAINS.has(c.chainId)) return null;
