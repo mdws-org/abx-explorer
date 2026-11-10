@@ -1,0 +1,44 @@
+# Build the site on every pull request and on main, the way it is built before an upload.
+# build_site.py refuses a build that names a local-only host or fails the type check
+# (tools/check-measure.mjs, which needs a browser). Nothing ran it before a merge, so a
+# pull request could leave main unable to build.
+name: Checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+
+      - name: Syntax-check the page scripts
+        run: node --check web/app.js && node --check web/mint.js && node --check web/theme.js
+
+      # The type check's one dependency. No lifecycle scripts run.
+      - name: Install the type check's dependency
+        run: npm ci --prefix tools --ignore-scripts
+
+      # check-measure.mjs exits 0 with a note when it finds no browser, which would pass
+      # this job without checking anything. Name the runner's Chrome and require it.
+      - name: Require a browser for the type check
+        run: test -x /usr/bin/google-chrome
+
+      - name: Build the site
+        env:
+          CHROME_PATH: /usr/bin/google-chrome
+        run: python3 build_site.py
