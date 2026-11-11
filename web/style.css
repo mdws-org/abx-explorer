@@ -209,7 +209,12 @@ h2 {
 }
 .log p { margin: 0; font-size: 1rem; max-width: 60ch; }
 .log .src { margin-top: 6px; font-size: 0.75rem; color: var(--ink-soft); }
-.log .src a { text-decoration: none; border-bottom: 1px solid var(--rule); }
+.log .src a {
+    text-decoration-line: underline;
+    text-decoration-color: var(--rule);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.25em;
+}
 @media (hover: hover) { .log .src a:hover { color: var(--accent); } }
 @media (max-width: 560px) {
     .log li { grid-template-columns: 1fr; }
@@ -422,7 +427,13 @@ dialog .links {
     font-size: 0.8rem;
     white-space: nowrap;
 }
-dialog .links a { text-decoration: none; border-bottom: 1px solid var(--rule); }
+/* Each link is a flex item, so its underline sits at the foot of the line box, lower than on inline links. */
+dialog .links a {
+    text-decoration-line: underline;
+    text-decoration-color: var(--rule);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.4em;
+}
 @media (hover: hover) { dialog .links a:hover { color: var(--accent); } }
 .dir td.open, .card .y.open { color: var(--accent); }
 .card .y { font-size: 0.74rem; color: var(--ink-soft); margin-top: 2px; }
@@ -525,8 +536,14 @@ dialog { max-width: 720px; }
     letter-spacing: 0.14em;
     text-transform: uppercase;
 }
-.site-footer a { color: inherit; text-decoration: none; border-bottom: 1px solid var(--rule); }
-.site-footer .footer-line a { border: 0; }
+.site-footer a {
+    color: inherit;
+    text-decoration-line: underline;
+    text-decoration-color: var(--rule);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.25em;
+}
+.site-footer .footer-line a { text-decoration-line: none; }
 @media (hover: hover) { .site-footer a:hover { color: var(--accent); } }
 .site-footer .provenance { max-width: 46em; margin: 0 auto 1.2rem; }
 
