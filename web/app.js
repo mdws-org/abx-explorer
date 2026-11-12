@@ -519,14 +519,15 @@ function mintCursor(c) {
 const gatewayUrl = (c, id) => `https://${c.chainId}-${c.address.slice(2).toLowerCase()}-${id}.abxfs.app/`;
 const tokenArg = (id, key) => word(id) + key;
 
-/* The from-chain viewer (mdws-org/abxfs-rs) gives each project its own hostname under VIEW_BASE and reads it
-   with no gateway. An empty value leaves the link out. */
+/* The from-chain viewer (mdws-org/abxfs-rs) reads a project with no gateway. The link opens the viewer's check
+   page, which says how the project's current version was established (by proof, or by endpoints agreeing)
+   before any of the project's own scripts run, and links on to the project. An empty value leaves the link out. */
 const VIEW_BASE = 'fromchain.dynv6.net';
-const VIEW_CHAINS = new Set([1, 8453, 42161]);
+const VIEW_CHAINS = new Set([1, 8453, 42161, 4663]);
 function fromChainUrl(c, id) {
     if (!VIEW_CHAINS.has(c.chainId)) return null;
     const label = `${c.chainId}-${c.address.slice(2).toLowerCase()}-${id}`;
-    return VIEW_BASE ? `https://${label}.${VIEW_BASE}/` : null;
+    return VIEW_BASE ? `https://check.${VIEW_BASE}/#${label}` : null;
 }
 
 async function paramString(c, id, key) {
