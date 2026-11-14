@@ -14,7 +14,9 @@
 // The page fills in from contracts.json and ours.json, which the refresh Worker
 // writes and a page build does not have. When site/ lacks them the server here
 // answers with the recorded copies in tools/fixtures/, 300ms late, the way the
-// network delivers them.
+// network delivers them. Known limit: when the live data is over an hour old
+// the status line gains a note and, on a phone, two more lines; that state is
+// not measured.
 //
 // Prose is the intro and the news entries. Table cells, captions, hints and
 // the new-collections list are data at 14px or less by design and are not
@@ -101,7 +103,11 @@ try {
         }
         await ctx.close();
     }
-    problems.push(...await checkLayoutShift(browser, origin, sample));
+    // The page adds a note once its data is over an hour old, which the recorded
+    // copy always is; the clock is set to just after the copy was made, so the
+    // check measures the page as it normally loads, at any time of day.
+    const made = JSON.parse(readFileSync(new URL("./contracts.json", FIXTURES), "utf8")).generated;
+    problems.push(...await checkLayoutShift(browser, origin, sample, (ctx) => ctx.clock.install({ time: new Date((made + 300) * 1000) })));
     problems.push(...await checkWebkitGaps(webkit, origin, sample, PROSE));
 } finally {
     await browser.close();
