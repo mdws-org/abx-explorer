@@ -757,8 +757,12 @@ async function main() {
     renderLog(news.status === 'fulfilled' ? news.value.entries || [] : [], state.all);
     renderFilters();
     renderData();
+    document.body.removeAttribute('data-loading');
     getJson('ours.json').then(renderOurs)
         .catch(() => { $('#ours-grid').innerHTML = '<p class="disclose">Could not read the wallet.</p>'; });
 }
 
-main().catch((e) => { $('#meta').textContent = `Could not read the data: ${e.message}`; });
+main().catch((e) => {
+    $('#meta').textContent = `Could not read the data: ${e.message}`;
+    document.body.removeAttribute('data-loading');
+});

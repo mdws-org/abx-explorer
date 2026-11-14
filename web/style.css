@@ -107,6 +107,13 @@ h1 {
 }
 .sub { max-width: 60ch; margin: 0 0 10px; }
 .meta { font-size: 0.85rem; color: var(--ink-soft); margin: 0; }
+/* While the data loads (body[data-loading], removed by app.js once the page
+   is drawn) the first screen keeps its shape: the status line holds the two
+   lines its final text can take on a phone, and the news section fills the
+   screen, so the sections under it start below the fold and nothing a reader
+   can see moves when the lists arrive. */
+@media (max-width: 40rem) { #meta { min-height: 3.1em; } }
+body[data-loading] #news { min-height: 100svh; }
 
 .num {
     display: inline-block;

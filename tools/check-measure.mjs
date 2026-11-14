@@ -7,7 +7,14 @@
 //                     average line passes 85;
 //   phone (390px):    no prose is justified;
 //   Safari (WebKit):  justified prose keeps its word spaces even
-//                     (webkit-gaps.mjs).
+//                     (webkit-gaps.mjs);
+//   both widths:      nothing moves after it appears: layout shift of 0.1 or
+//                     less (layout-shift.mjs).
+//
+// The page fills in from contracts.json and ours.json, which the refresh Worker
+// writes and a page build does not have. When site/ lacks them the server here
+// answers with the recorded copies in tools/fixtures/, 300ms late, the way the
+// network delivers them.
 //
 // Prose is the intro and the news entries. Table cells, captions, hints and
 // the new-collections list are data at 14px or less by design and are not
@@ -24,6 +31,8 @@ import { extname, join } from "node:path";
 const require = createRequire(new URL("./package.json", import.meta.url));
 const { chromium, webkit } = require("playwright-core");
 const { checkWebkitGaps } = await import(new URL("./webkit-gaps.mjs", import.meta.url));
+const { checkLayoutShift } = await import(new URL("./layout-shift.mjs", import.meta.url));
+const FIXTURES = new URL("./fixtures/", import.meta.url);
 
 const SITE = process.argv[2] || "site";
 const MEDIAN_MAX = 75, LINE_MAX = 85, BODY_MIN = 16;
@@ -45,10 +54,14 @@ const server = createServer((req, res) => {
     if (p.endsWith("/")) p += "index.html";
     // Media is not needed to measure type; answering 404 keeps the run fast.
     if (p.startsWith("/media/")) { res.writeHead(404); return res.end(); }
-    let body;
-    try { body = readFileSync(join(SITE, p)); } catch { res.writeHead(404); return res.end(); }
-    res.writeHead(200, { "content-type": TYPES[extname(p)] || "application/octet-stream" });
-    res.end(body);
+    let body, late = 0;
+    try { body = readFileSync(join(SITE, p)); } catch {
+        try { body = readFileSync(new URL("." + p, FIXTURES)); late = 300; } catch { res.writeHead(404); return res.end(); }
+    }
+    setTimeout(() => {
+        res.writeHead(200, { "content-type": TYPES[extname(p)] || "application/octet-stream" });
+        res.end(body);
+    }, late);
 });
 await new Promise((r) => server.listen(0, "127.0.0.1", r));
 const origin = `http://127.0.0.1:${server.address().port}/`;
@@ -88,6 +101,7 @@ try {
         }
         await ctx.close();
     }
+    problems.push(...await checkLayoutShift(browser, origin, sample));
     problems.push(...await checkWebkitGaps(webkit, origin, sample, PROSE));
 } finally {
     await browser.close();
