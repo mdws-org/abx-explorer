@@ -1,0 +1,60 @@
+{
+ "wallet": "0x3dbecab2ef24f755c8ff1ab622d475394c49cbe1",
+ "note": "Written by the auto-minter after each confirmed mint. The page re-checks ownership on chain.",
+ "mints": [
+  {
+   "chainId": 8453,
+   "address": "0xe8978b5d18980fa16494fb83167c84cbbe9a6816",
+   "tokenId": 3,
+   "tx": "0x362948ee26b826e49b910d112be77ef2dcdde46fffb3517c0b0b2491e811e70b",
+   "date": "2026-11-06",
+   "price": "0",
+   "gas": "sponsored"
+  },
+  {
+   "chainId": 8453,
+   "address": "0xd84d68c97045ad73593c0076cc3712a09b284817",
+   "tokenId": 2,
+   "tx": "0xd8b433c3ec44e7e35b6a145457bd5f0f01ffd5434c1840ee2744c30d21edaf2f",
+   "date": "2026-11-06",
+   "price": "0",
+   "gas": "sponsored"
+  },
+  {
+   "chainId": 8453,
+   "address": "0x1a86952a46695ccafcba92f7072e03da3347b77d",
+   "tokenId": 2,
+   "tx": "0x73e60b3b4b4d26fbfe91840e1425e4da4775c9aa9ad7b6e75fbab1a171f0618d",
+   "date": "2026-11-06",
+   "price": "0",
+   "gas": "sponsored"
+  },
+  {
+   "chainId": 8453,
+   "address": "0x10ddfcbcd62e784c522d0b466ed109fc65b2a855",
+   "tokenId": 8,
+   "tx": "0x7239ad61cc6789f8c65bdaa0695e88838026203949fc4b4d44946dc16e4cc105",
+   "date": "2026-11-06",
+   "price": "0",
+   "gas": "sponsored"
+  },
+  {
+   "chainId": 8453,
+   "address": "0xef8a6ff76196af880caaf5f436d4bc49a1c018c9",
+   "tokenId": 12,
+   "tx": "0x9c92a8ab136c5110e9d5842aa0a7016bdbac638b2764fe3cb921ff72fcb19815",
+   "date": "2026-11-06",
+   "price": "0",
+   "gas": "sponsored"
+  },
+  {
+   "chainId": 42161,
+   "address": "0x6dd8e2d3ea605d6cc61f84896f967de476294b2e",
+   "tokenId": 2,
+   "tx": "0xf895e656a0396a7f6d8581513a79a72bcd5641afd644b1f4b4fdbbf7310f49bc",
+   "date": "2026-11-05",
+   "price": "0",
+   "gas": "sponsored"
+  }
+ ]
+}
