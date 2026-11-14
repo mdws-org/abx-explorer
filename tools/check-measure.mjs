@@ -5,7 +5,9 @@
 //   desktop (1440px): prose that wraps to 3+ lines is 16px or larger, a page's
 //                     median line is at most 75 characters, no paragraph's
 //                     average line passes 85;
-//   phone (390px):    no prose is justified.
+//   phone (390px):    no prose is justified;
+//   Safari (WebKit):  justified prose keeps its word spaces even
+//                     (webkit-gaps.mjs).
 //
 // Prose is the intro and the news entries. Table cells, captions, hints and
 // the new-collections list are data at 14px or less by design and are not
@@ -20,7 +22,8 @@ import { existsSync, readFileSync } from "node:fs";
 import { extname, join } from "node:path";
 
 const require = createRequire(new URL("./package.json", import.meta.url));
-const { chromium } = require("playwright-core");
+const { chromium, webkit } = require("playwright-core");
+const { checkWebkitGaps } = await import(new URL("./webkit-gaps.mjs", import.meta.url));
 
 const SITE = process.argv[2] || "site";
 const MEDIAN_MAX = 75, LINE_MAX = 85, BODY_MIN = 16;
@@ -85,6 +88,7 @@ try {
         }
         await ctx.close();
     }
+    problems.push(...await checkWebkitGaps(webkit, origin, sample, PROSE));
 } finally {
     await browser.close();
     server.close();
