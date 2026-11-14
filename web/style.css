@@ -39,7 +39,6 @@ body {
     color: var(--ink);
     font-family: 'Public Sans', system-ui, sans-serif;
     line-height: 1.55;
-    font-variant-numeric: tabular-nums;
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
 }
@@ -94,6 +93,9 @@ html.dark #theme-toggle::before { content: "Light"; }
     margin: 0 auto;
     padding: 0 20px;
 }
+/* Tabular figures where numbers line up (dates, counts, table columns);
+   running prose keeps proportional figures. */
+time, .meta, table.dir td, .chip .c, .card .y, .mint .n, .mint .y { font-variant-numeric: tabular-nums; }
 /* Headings wrap to even lines instead of leaving one word on the last. */
 h1, h2, h3 { text-wrap: balance; }
 h1 {
