@@ -2,13 +2,14 @@
 @font-face {
     font-family: 'Public Sans';
     src: url('publicsans.woff2') format('woff2');
-    font-weight: 100 900;
+    font-weight: 400 700;
     font-display: swap;
 }
 :root {
     --bg: #000000;
     --ink: #a3a3a3;
-    --ink-soft: #737373;
+    /* #737373 measured 4.42:1 on black, under the 4.5:1 floor; #757575 is 4.56:1. */
+    --ink-soft: #757575;
     --title: #d4d4d4;
     --rule: #27272a;
     --accent: #ffffff;
@@ -39,6 +40,8 @@ body {
     font-family: 'Public Sans', system-ui, sans-serif;
     line-height: 1.55;
     font-variant-numeric: tabular-nums;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
 }
 a { color: inherit; }
 code, .mono {
@@ -91,6 +94,8 @@ html.dark #theme-toggle::before { content: "Light"; }
     margin: 0 auto;
     padding: 0 20px;
 }
+/* Headings wrap to even lines instead of leaving one word on the last. */
+h1, h2, h3 { text-wrap: balance; }
 h1 {
     color: var(--accent);
     font-weight: 700;
@@ -153,7 +158,7 @@ h2 {
 }
 @media (hover: hover) { .sec-aside .clear:hover { color: var(--accent); } }
 .disclose, .hint {
-    font-size: 0.78rem;
+    font-size: 0.875rem;
     color: var(--ink-soft);
     max-width: 70ch;
     margin: 12px 0 0;
@@ -193,7 +198,7 @@ h2 {
 @media (hover: hover) { .log.compact h3 a:hover { color: var(--accent); } }
 .log.compact p { font-size: 0.875rem; color: var(--ink-soft); }
 .log .open { color: var(--accent); }
-.log time { font-size: 0.8rem; color: var(--ink-soft); padding-top: 2px; }
+.log time { font-size: 0.875rem; color: var(--ink-soft); padding-top: 2px; }
 .log .tag {
     font-size: 0.66rem;
     letter-spacing: 0.16em;
@@ -208,7 +213,7 @@ h2 {
     margin: 0 0 4px;
 }
 .log p { margin: 0; font-size: 1rem; max-width: 60ch; }
-.log .src { margin-top: 6px; font-size: 0.75rem; color: var(--ink-soft); }
+.log .src { margin-top: 6px; font-size: 0.875rem; color: var(--ink-soft); }
 .log .src a {
     text-decoration-line: underline;
     text-decoration-color: var(--rule);
@@ -272,7 +277,7 @@ h2 {
 table.dir {
     width: 100%;
     border-collapse: collapse;
-    font-size: 0.84rem;
+    font-size: 0.875rem;
 }
 .dir th {
     text-align: left;
@@ -373,7 +378,7 @@ table.dir {
 }
 .card .n {
     color: var(--title);
-    font-size: 0.84rem;
+    font-size: 0.875rem;
     line-height: 1.35;
     margin: 8px 0 0;
     display: -webkit-box;
@@ -436,7 +441,7 @@ dialog .links a {
 }
 @media (hover: hover) { dialog .links a:hover { color: var(--accent); } }
 .dir td.open, .card .y.open { color: var(--accent); }
-.card .y { font-size: 0.74rem; color: var(--ink-soft); margin-top: 2px; }
+.card .y { font-size: 0.875rem; color: var(--ink-soft); margin-top: 2px; }
 dialog { max-width: 720px; }
 .mints-h {
     font-size: 0.68rem;
@@ -456,7 +461,7 @@ dialog { max-width: 720px; }
 .mint { text-decoration: none; color: inherit; }
 .mint .img { aspect-ratio: 1; display: grid; place-items: center; overflow: hidden; }
 .mint img, .mint iframe { width: 100%; height: 100%; object-fit: contain; border: 0; display: block; }
-.mint .n { font-size: 0.74rem; color: var(--ink-soft); margin-top: 4px; }
+.mint .n { font-size: 0.875rem; color: var(--ink-soft); margin-top: 4px; }
 @media (hover: hover) { .mint:hover .n { color: var(--accent); } }
 .mint a { text-decoration: none; color: inherit; }
 .mint .n { display: block; }
@@ -476,7 +481,7 @@ dialog { max-width: 720px; }
 .dir td.name a { text-decoration: none; color: inherit; }
 .dir td.name a:focus-visible { color: var(--accent); }
 @media (hover: hover) { .dir td.name a:hover { color: var(--accent); } }
-.mint .y { font-size: 0.72rem; color: var(--ink-soft); }
+.mint .y { font-size: 0.875rem; color: var(--ink-soft); }
 .mint .y a { border-bottom: 1px solid var(--rule); }
 .mints.ours { margin-top: 14px; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
 .sites { list-style: none; margin: 0; padding: 0; }
