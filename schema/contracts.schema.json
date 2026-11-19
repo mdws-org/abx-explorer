@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/mdws-org/abx-explorer/blob/main/schema/contracts.schema.json",
+  "title": "contracts.json",
+  "description": "Every ABX factory collection the Worker found, as the Explorer page and find3r read it. Written by worker/worker.js (refreshCollections) to R2. Fields may be added without a version change; removing or retyping one is a breaking change for web/app.js.",
+  "type": "object",
+  "required": ["generated", "failedChains", "contracts"],
+  "properties": {
+    "generated": { "description": "Unix seconds of the run that wrote the file.", "type": "integer", "minimum": 0 },
+    "failedChains": { "description": "Names of chains whose read failed in that run; their collections are carried over from the previous file.", "type": "array", "items": { "$ref": "#/$defs/chainName" } },
+    "contracts": { "type": "array", "items": { "$ref": "#/$defs/contract" } }
+  },
+  "$defs": {
+    "address": { "type": "string", "pattern": "^0x[0-9a-f]{40}$" },
+    "chainName": { "enum": ["Ethereum", "Base", "Arbitrum", "Robinhood Chain"] },
+    "decimal": { "description": "A non-negative integer written in decimal, for values wider than a JavaScript number (wei, token ids).", "type": "string", "pattern": "^(0|[1-9][0-9]*)$" },
+    "textOrNull": { "type": ["string", "null"] },
+    "contract": {
+      "type": "object",
+      "required": ["chainId", "chain", "address", "kind", "owner", "block", "tx", "name", "symbol", "timestamp", "description", "image", "sale", "ownerName"],
+      "properties": {
+        "chainId": { "enum": [1, 8453, 42161, 4663] },
+        "chain": { "$ref": "#/$defs/chainName" },
+        "address": { "$ref": "#/$defs/address" },
+        "kind": { "enum": ["Series code", "Series image", "Edition code", "Edition image", "1/1 edition", "1/1 image"] },
+        "owner": { "$ref": "#/$defs/address" },
+        "block": { "type": "integer", "minimum": 0 },
+        "tx": { "type": "string", "pattern": "^0x[0-9a-f]{64}$" },
+        "name": { "type": "string" },
+        "symbol": { "type": "string" },
+        "timestamp": { "description": "Unix seconds of the deployment block.", "type": "integer", "minimum": 0 },
+        "description": { "$ref": "#/$defs/textOrNull" },
+        "image": { "$ref": "#/$defs/textOrNull" },
+        "ownerName": { "$ref": "#/$defs/textOrNull" },
+        "creator": { "$ref": "#/$defs/textOrNull" },
+        "link": { "$ref": "#/$defs/textOrNull" },
+        "live": { "type": "boolean" },
+        "previewToken": { "type": "integer", "minimum": 0 },
+        "copyAttemptAt": { "type": "integer", "minimum": 0 },
+        "copy": {
+          "description": "The Worker's copy of an outside image, served from img/.",
+          "type": "object",
+          "required": ["key", "sha256", "bytes", "type", "savedAt", "checkedAt"],
+          "properties": {
+            "key": { "type": "string", "pattern": "^img/[0-9]+-[0-9a-f]{40}\\.[a-z0-9]+$" },
+            "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+            "bytes": { "type": "integer", "minimum": 1 },
+            "type": { "type": "string", "pattern": "^image/" },
+            "savedAt": { "type": "integer", "minimum": 0 },
+            "checkedAt": { "type": "integer", "minimum": 0 },
+            "etag": { "type": "string" },
+            "lastModified": { "type": "string" }
+          }
+        },
+        "sale": {
+          "type": "object",
+          "required": ["minter", "paused", "minted", "cap", "sales", "state"],
+          "properties": {
+            "minter": { "anyOf": [{ "$ref": "#/$defs/address" }, { "type": "null" }] },
+            "paused": { "type": "boolean" },
+            "minted": { "type": ["integer", "null"], "minimum": 0 },
+            "cap": { "description": "A uint256 read through Number(), so an unlimited cap arrives as about 1.16e77.", "type": ["number", "null"], "minimum": 0 },
+            "state": { "enum": ["open", "paused", "sold out", "no sale set", "custom minter", "owner only"] },
+            "minterInfo": {
+              "type": ["object", "null"],
+              "properties": {
+                "address": { "$ref": "#/$defs/address" },
+                "contractName": { "$ref": "#/$defs/textOrNull" },
+                "ens": { "$ref": "#/$defs/textOrNull" },
+                "image": { "$ref": "#/$defs/textOrNull" },
+                "isContract": { "type": "boolean" }
+              }
+            },
+            "sales": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["paymentToken", "price", "allocation", "sold"],
+                "properties": {
+                  "paymentToken": { "$ref": "#/$defs/address" },
+                  "price": { "$ref": "#/$defs/decimal" },
+                  "allocation": { "type": "number", "minimum": 0 },
+                  "sold": { "type": "integer", "minimum": 0 },
+                  "id": { "$ref": "#/$defs/decimal" }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

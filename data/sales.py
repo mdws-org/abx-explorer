@@ -119,7 +119,7 @@ def sale_status(c):
         for i in edition_ids(cid, tok):
             sale = read_sale(cid, MINTER_1155, selector("sales(address,uint256)") + pad_addr(tok) + f"{i:064x}")
             if sale:
-                s["sales"].append(dict(sale, id=i))
+                s["sales"].append(dict(sale, id=str(i)))  # decimal string, as the Worker writes it
     s["state"] = classify(s)
     return s
 
