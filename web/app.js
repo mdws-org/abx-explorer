@@ -499,7 +499,8 @@ function mintCursor(c) {
     const s = c.sale || {};
     let ids;
     if (isEdition(c)) {
-        ids = (s.sales || []).map((x) => x.id).filter(Number.isInteger);
+        // contracts.json writes edition ids as decimal strings (schema/contracts.schema.json).
+        ids = (s.sales || []).map((x) => (typeof x.id === 'string' && /^\d+$/.test(x.id) ? Number(x.id) : x.id)).filter(Number.isSafeInteger);
         let i = 0;
         return { next: (n) => ids.slice(i, (i += n)), left: () => i < ids.length, first: () => ids[0] };
     }

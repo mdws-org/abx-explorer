@@ -1,0 +1,30 @@
+# Once a day, check the files the Worker publishes against schema/. A failed run is the
+# signal that the live contracts.json or abx-owners.json no longer has the shape the page
+# and find3r read, whatever changed it (a Worker deploy, an upstream reply, a hand edit).
+name: Live data
+
+on:
+  schedule:
+    - cron: "17 9 * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+
+      - name: Check the published files
+        run: |
+          node tools/check-data.mjs contracts https://abx.thebenmeadows.com/contracts.json
+          node tools/check-data.mjs owners https://abx.thebenmeadows.com/abx-owners.json

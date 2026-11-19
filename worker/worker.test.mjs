@@ -1,5 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import worker from './worker.js';
 
 // An R2 bucket in memory: put stamps `uploaded` from a clock that only moves forward.
@@ -96,4 +97,16 @@ test('feed: characters XML 1.0 forbids are dropped', async () => {
   const feed = R2.store.get('feed.xml').body;
   assert.match(feed, /<title>abx-cli 1\.1\.0<\/title>/);
   assert.doesNotMatch(feed, /[\u0000-\u0008\u000b\u000c\u000e-\u001f]/);
+});
+
+// The files the page and find3r read must keep the shape in schema/, whatever the run changed.
+test('published files: a quarter-hour run writes contracts.json and abx-owners.json that pass the schemas', async () => {
+  const { checkData } = await import('../tools/check-data.mjs');
+  const fixture = JSON.parse(readFileSync(new URL('../tools/fixtures/contracts.json', import.meta.url), 'utf8'));
+  const R2 = bucket({ 'contracts.json': fixture });
+  stubFetch({ projects: [{ chainId: 8453, address: A }], project: () => live(8453, A, W1) });
+  await run(R2, QUARTER);
+  assert.deepEqual(checkData('contracts', R2.json('contracts.json')), []);
+  assert.ok(R2.json('abx-owners.json'), 'the run published no owner index');
+  assert.deepEqual(checkData('owners', R2.json('abx-owners.json')), []);
 });

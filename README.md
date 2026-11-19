@@ -26,8 +26,13 @@ The page reads the six ABX factory contracts on Ethereum, Base, Arbitrum and Rob
 | `data/keccak.py` | Keccak-256 for function selectors and event topics |
 | `build_site.py` | Copies `web/` into `site/` for publishing |
 | `serve.py` | Serves `web/` on 127.0.0.1:8821 with caching off |
+| `schema/` | JSON Schemas for `contracts.json` and `abx-owners.json`, the two files the Worker publishes and the page and find3r read |
+| `tools/check-data.mjs` | Checks a file or URL against those schemas: `node tools/check-data.mjs contracts\|owners <file or URL>` |
+| `tools/data-cases.json` | The cases the schemas must accept or reject, run by `node --test tools/check-data.test.mjs` |
 
-The scripts use the Python standard library only.
+The scripts use the Python standard library only. The schema check uses Node's own modules only.
+
+Adding a field to either file needs no schema change. Removing a field, renaming it or changing its type breaks the page: change the schema, the Worker and `web/app.js` in the same pull request. CI runs the schema cases and the Worker tests on every pull request, and the Live data workflow checks the published files once a day.
 
 ## Run it locally
 
