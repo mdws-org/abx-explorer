@@ -27,6 +27,12 @@ const RPC = {
     42161: 'https://arb1.arbitrum.io/rpc',
     4663: 'https://rpc.mainnet.chain.robinhood.com',
 };
+/* A second endpoint for token metadata the first one refuses. A token whose art is built
+   on-chain can need hundreds of millions of gas to read (Squeegee: about 269M), above the
+   read cap of most public RPCs; they answer with a revert that carries no data. */
+const RPC_HEAVY = {
+    1: 'https://rpc.mevblocker.io',
+};
 const LOG_FIRST = 6;
 const MINT_PAGE = 12;
 const MAX_LISTED_TOKENS = 2000;   // newest N tokens of a collection are browsable here
@@ -310,12 +316,20 @@ async function getJson(url, init = {}) {
     return r.json();
 }
 
-async function ethCall(chainId, to, data) {
-    const j = await getJson(RPC[chainId], {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'eth_call', params: [{ to, data }, 'latest'] }),
-    });
+const rpcCall = (url, to, data) => getJson(url, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'eth_call', params: [{ to, data }, 'latest'] }),
+});
+
+/* A revert with no data: what an RPC returns when a read runs past its gas cap. */
+const bareRevert = (j) => !!j.error && (j.error.data === undefined || j.error.data === '0x');
+
+/* `heavy` marks a read that may need more gas than the chain's first endpoint allows; a bare
+   revert there is retried once on RPC_HEAVY. */
+async function ethCall(chainId, to, data, heavy = false) {
+    let j = await rpcCall(RPC[chainId], to, data);
+    if (heavy && RPC_HEAVY[chainId] && bareRevert(j)) j = await rpcCall(RPC_HEAVY[chainId], to, data);
     if (j.error || typeof j.result !== 'string' || !/^0x[0-9a-fA-F]*$/.test(j.result) || j.result === '0x') {
         throw new Error('call failed');
     }
@@ -439,7 +453,7 @@ const word = (n) => BigInt(n).toString(16).padStart(64, '0');
 
 async function loadToken(c, id, holder) {
     const w = word(id);
-    let uri = abiString(await ethCall(c.chainId, c.address, (isEdition(c) ? '0x0e89341c' : '0xc87b56dd') + w));
+    let uri = abiString(await ethCall(c.chainId, c.address, (isEdition(c) ? '0x0e89341c' : '0xc87b56dd') + w, true));
     if (isEdition(c)) uri = uri.replace('{id}', w);   // ERC-1155 id substitution
     const meta = await tokenMeta(uri);
     let owner = null, held = null;
