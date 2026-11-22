@@ -463,7 +463,7 @@ async function loadToken(c, id, holder) {
     } else if (holder) {
         held = BigInt(await ethCall(c.chainId, c.address, `0x00fdd58e${holder.slice(2).padStart(64, '0')}${w}`)) > 0n;
     }
-    return { id, meta, owner, held };
+    return { id, meta, owner, held, uri };
 }
 
 function art(t) {
@@ -500,7 +500,9 @@ async function loadMints(c, cursor, grid, more, note) {
     more.hidden = true;
     const batch = cursor.next(MINT_PAGE);
     const results = await Promise.allSettled(batch.map((id) => loadToken(c, id)));
-    const ok = results.filter((r) => r.status === 'fulfilled').map((r) => tokenTile(c, r.value));
+    const read = results.filter((r) => r.status === 'fulfilled');
+    const ok = read.map((r) => tokenTile(c, r.value));
+    if (read.length && dependsView && dependsView.c === c) dependsView.sample(read[0].value);
     grid.insertAdjacentHTML('beforeend', ok.join(''));
     const failed = results.length - ok.length;
     note.textContent = failed ? `${failed} of ${results.length} tokens in that batch could not be read.` : '';
@@ -605,6 +607,116 @@ async function loadSites(c, list, note) {
 
 /* ── detail dialog ───────────────────────────────────────────────────────── */
 
+/* ── what a collection depends on ────────────────────────────────────────── */
+
+/* Read from the collection's own contract when its detail view opens (web/depends.js turns the answers into
+   rows). A read that fails is null, and its row says "Not read". */
+const DEP_SEL = {
+    uriLocked: '0xac998f45', renderer: '0xd50bac33', base: '0x261220a3',                    // tokenURILocked, tokenURIRenderer, tokenURIBase
+    chunks: '0x92d9906f', scriptLocked: '0x7d0b7ae4', depCount: '0xd90f5df2', depsLocked: '0xea58f971',
+    hooks: '0x3c59f1bb', hooksLocked: '0x6c59f759',                                         // paramHooks, paramHooksLocked
+    field: '0x55828c50', fieldLocked: '0x2e73cddb',                                         // contractField(bytes32), contractFieldLocked(bytes32)
+};
+const DEP_STATE = { chain: 'On chain', pinned: 'Pinned', host: 'Server', open: 'Changeable', unknown: 'Unknown' };
+const DEP_NOTE = 'Read from the contract just now through one public endpoint, not proved. Not checked: that a file kept off chain is the one the artist meant, or that a server named here still answers.';
+const isCode = (c) => c.kind.endsWith('code');
+const tagHex = (s) => Array.from(new TextEncoder().encode(s), (b) => b.toString(16).padStart(2, '0')).join('').padEnd(64, '0');
+const hexBytes = (h) => Uint8Array.from(h.match(/../g) || [], (x) => parseInt(x, 16));
+/* One ABI word as an address: the address, null for the zero address, undefined for a word that is not an
+   address at all (anything in its upper 12 bytes), which callers treat as not read. */
+const addrWord = (w) => (!/^0{24}[0-9a-f]{40}$/i.test(w) ? undefined : /^0+$/.test(w) ? null : `0x${w.slice(24).toLowerCase()}`);
+const utf8 = (bytes) => { try { return new TextDecoder('utf-8', { fatal: true }).decode(bytes); } catch { return null; } };
+const TEXT_REPS = new Set(['url', 'url-template', 'ipfs', 'arweave', 'inline']);
+const MAX_FIELD_HEX = 4096;   // longer values are named by their representation and not decoded
+
+/* contractField(bytes32) returns (bytes32 representation, bytes value). The result is { rep, value }: the tag
+   as text, and the value as an address for a renderer or a reader, as text where the representation carries text, and
+   null otherwise (a value that is binary, too long, or not what its representation says). Null when the
+   field is not set or the reply is not that tuple. */
+function fieldValue(hex) {
+    const h = hex.slice(2);
+    // Two head words, then the bytes at offset 0x40: its length word and its data.
+    if (h.length < 192 || h.length % 64 || !/^0{62}40$/.test(h.slice(64, 128))) return null;
+    const rep = (utf8(hexBytes(h.slice(0, 64))) || '').replace(/\0+$/, '');
+    if (!/^[a-z0-9-]{1,31}$/.test(rep)) return null;
+    const len = parseInt(h.slice(128, 192), 16) * 2;
+    if (!Number.isSafeInteger(len) || 192 + len > h.length) return null;
+    const body = h.slice(192, 192 + len);
+    if (rep === 'renderer') return { rep, value: (len === 64 && addrWord(body)) || null };
+    // A reader's value is (reader, pointer): the reader is the contract to name.
+    if (rep === 'reader' || rep === 'reader-gzip') return { rep, value: (len === 128 && addrWord(body.slice(0, 64))) || null };
+    if (!TEXT_REPS.has(rep) || len > MAX_FIELD_HEX) return { rep, value: null };
+    return { rep, value: utf8(hexBytes(body)) };
+}
+
+async function readDepends(c) {
+    // A public endpoint refuses a burst now and then: one more try, a moment later, before a read is given up.
+    const once = (data) => ethCall(c.chainId, c.address, data);
+    const call = (data) => once(data).catch(() => new Promise((ok) => setTimeout(ok, 600)).then(() => once(data))).catch(() => null);
+    // A bool is the word 1 or the word 0; anything else is not read.
+    const flag = (r) => (!r || r.length !== 66 ? null : /^0x0{63}1$/.test(r) ? true : /^0x0{64}$/.test(r) ? false : null);
+    const count = (r) => (r && r.length === 66 && BigInt(r) <= 100000n ? Number(BigInt(r)) : null);
+    const field = async (name) => {
+        const [r, lock] = await Promise.all([call(DEP_SEL.field + tagHex(name)), call(DEP_SEL.fieldLocked + tagHex(name))]);
+        const f = r ? fieldValue(r) : null;
+        return f && flag(lock) !== null ? { ...f, locked: flag(lock) } : f;
+    };
+    const code = isCode(c);
+    // Two rounds, so one detail view never sends more than ten reads at once.
+    const [uriLocked, renderer, base, image, creator] = await Promise.all([
+        call(DEP_SEL.uriLocked), call(DEP_SEL.renderer), call(DEP_SEL.base), field('image'), field('creator'),
+    ]);
+    const more = code ? await Promise.all([
+        call(DEP_SEL.chunks), call(DEP_SEL.scriptLocked), call(DEP_SEL.depCount), call(DEP_SEL.depsLocked),
+        call(DEP_SEL.hooks), call(DEP_SEL.hooksLocked), field('code'), field('animation_url'),
+    ]) : [];
+    const [chunks, scriptLocked, depCount, depsLocked, hooks, hooksLocked, codeField, live] = more;
+    let baseText = null;
+    try { baseText = base ? abiString(base) : null; } catch { /* not read */ }
+    const hookWords = hooks && hooks.length === 194 ? [0, 1, 2].map((i) => addrWord(hooks.slice(2 + i * 64, 66 + i * 64))) : null;
+    // A hook word that is not an address leaves the whole row unread: it is never shown as no hook.
+    const hooksRead = hookWords && !hookWords.includes(undefined);
+    // A renderer word that is not an address is not "no renderer": metadata is then not read.
+    const rendererWord = renderer && renderer.length === 66 ? addrWord(renderer.slice(2)) : undefined;
+    return {
+        kind: c.kind,
+        uriLocked: flag(uriLocked),
+        renderer: rendererWord || null,
+        rendererUnread: rendererWord === undefined && flag(uriLocked) !== null,
+        base: baseText,
+        script: code ? { chunks: count(chunks), locked: flag(scriptLocked) } : null,
+        deps: code ? { count: count(depCount), locked: flag(depsLocked) } : null,
+        fields: { code: codeField || null, animation_url: live || null, image },
+        hooks: hooksRead ? { configure: hookWords[0], augment: hookWords[1], transfer: hookWords[2], locked: flag(hooksLocked) } : null,
+        creator: creator && creator.rep === 'inline' && creator.value ? creator.value.slice(0, 200) : null,
+        creatorLocked: creator ? creator.locked : undefined,
+        sample: null,
+    };
+}
+
+function renderDepends(el, facts) {
+    el.innerHTML = abxDepends.rows(facts).map((r) =>
+        `<dt>${esc(r.label)}</dt><dd><span class="dep">${esc(DEP_STATE[r.state] || DEP_STATE.unknown)}</span> ${esc(r.text)}</dd>`).join('');
+}
+
+/* The newest detail view's list: { c, sample(token) }. The first token read for the mints grid fills in what
+   the contract itself does not say (where that token's image and live view come from). */
+let dependsView = null;
+
+function startDepends(c, el, listed) {
+    let facts = null, token = null;
+    const draw = () => {
+        if (!facts || !el.isConnected) return;   // the view was closed or replaced
+        const t = token && { uri: token.uri, image: token.meta.image, animation: token.meta.animation_url };
+        renderDepends(el, { ...facts, sample: t || null });
+    };
+    // The first token read stays the sample: rows do not change as more of the grid loads.
+    dependsView = { c, sample: (t) => { if (!token) { token = t; draw(); } } };
+    readDepends(c).then((f) => { facts = f; draw(); }, () => { el.innerHTML = '<dt>Contract</dt><dd>Could not be read.</dd>'; });
+    // With no token listed below, token 0 is tried once, so the image row has something to go on.
+    if (!listed && !isEdition(c)) loadToken(c, 0).then((t) => { if (!token) { token = t; draw(); } }, () => {});
+}
+
 function detailLinks(c) {
     const ex = EXPLORER[c.chainId];
     const sample = mintCursor(c).first();
@@ -646,6 +758,9 @@ function openDetail(key, opener) {
             <dt>Minter</dt><dd>${minterLine(c)}</dd>
         </dl>
         <div class="links">${detailLinks(c).map(([l, u]) => `<a href="${esc(u)}" target="_blank" rel="noopener noreferrer">${esc(l)}</a>`).join('')}</div>
+        ${isSiteOrg(c) ? '' : `<h4 class="mints-h">Depends on</h4>
+        <dl class="depends" id="depends" aria-live="polite"><dt>Contract</dt><dd>Reading…</dd></dl>
+        <p class="disclose" id="depends-note">${esc(DEP_NOTE)}</p>`}
         <h4 class="mints-h">Mints</h4>
         <div class="mints" id="mints" aria-live="polite"></div>
         <p class="disclose" id="mints-note" role="status"></p>
@@ -663,6 +778,7 @@ function openDetail(key, opener) {
         return;
     }
     const cursor = mintCursor(c);
+    startDepends(c, dlg.querySelector('#depends'), cursor.left());
     const grid = dlg.querySelector('#mints'), more = dlg.querySelector('#mints-more'), note = dlg.querySelector('#mints-note');
     if (!cursor.left()) {
         note.textContent = 'Nothing minted yet.';

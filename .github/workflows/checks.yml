@@ -27,13 +27,18 @@ jobs:
           node-version: 22
 
       - name: Syntax-check the page scripts
-        run: node --check web/app.js && node --check web/mint.js && node --check web/theme.js
+        run: node --check web/app.js && node --check web/depends.js && node --check web/mint.js && node --check web/theme.js
 
       # contracts.json and abx-owners.json keep the shape in schema/. The cases in
       # tools/data-cases.json say what must pass and what must fail; the Worker tests include
       # a run whose published files are checked against the same schemas.
       - name: Check the data schemas
         run: node --test tools/check-data.test.mjs && node tools/check-data.mjs contracts tools/fixtures/contracts.json
+
+      # The detail view's "Depends on" list: tools/depends-cases.json says what each kind of
+      # contract answer must be shown as.
+      - name: Check the "Depends on" cases
+        run: node --test tools/depends.test.mjs && python3 tools/check-selectors.py
 
       # The Worker tests use only Node's own modules, so they need no install.
       - name: Run the Worker tests
