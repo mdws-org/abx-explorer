@@ -38,7 +38,7 @@ jobs:
       # The detail view's "Depends on" list: tools/depends-cases.json says what each kind of
       # contract answer must be shown as.
       - name: Check the "Depends on" cases
-        run: node --test tools/depends.test.mjs
+        run: node --test tools/depends.test.mjs && python3 tools/check-selectors.py
 
       # The Worker tests use only Node's own modules, so they need no install.
       - name: Run the Worker tests

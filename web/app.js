@@ -622,25 +622,35 @@ const DEP_NOTE = 'Read from the contract just now through one public endpoint, n
 const isCode = (c) => c.kind.endsWith('code');
 const tagHex = (s) => Array.from(new TextEncoder().encode(s), (b) => b.toString(16).padStart(2, '0')).join('').padEnd(64, '0');
 const hexBytes = (h) => Uint8Array.from(h.match(/../g) || [], (x) => parseInt(x, 16));
-const addrWord = (w) => (/^0{24}[0-9a-f]{40}$/i.test(w) && !/^0+$/.test(w) ? `0x${w.slice(24).toLowerCase()}` : null);
+/* One ABI word as an address: the address, null for the zero address, undefined for a word that is not an
+   address at all (anything in its upper 12 bytes), which callers treat as not read. */
+const addrWord = (w) => (!/^0{24}[0-9a-f]{40}$/i.test(w) ? undefined : /^0+$/.test(w) ? null : `0x${w.slice(24).toLowerCase()}`);
+const utf8 = (bytes) => { try { return new TextDecoder('utf-8', { fatal: true }).decode(bytes); } catch { return null; } };
+const TEXT_REPS = new Set(['url', 'url-template', 'ipfs', 'arweave', 'inline']);
+const MAX_FIELD_HEX = 4096;   // longer values are named by their representation and not decoded
 
-/* contractField(bytes32) returns (bytes32 representation, bytes value): the tag as text, and the value as an
-   address for a renderer, otherwise as text. Null when the field is not set. */
+/* contractField(bytes32) returns (bytes32 representation, bytes value). The result is { rep, value }: the tag
+   as text, and the value as an address for a renderer, as text where the representation carries text, and
+   null otherwise (a value that is binary, too long, or not what its representation says). Null when the
+   field is not set or the reply is not that tuple. */
 function fieldValue(hex) {
     const h = hex.slice(2);
-    if (h.length < 192) return null;
-    const rep = new TextDecoder().decode(hexBytes(h.slice(0, 64))).replace(/\0+$/, '');
-    const off = parseInt(h.slice(64, 128), 16) * 2;
-    if (!rep || !/^[a-z0-9-]{1,31}$/.test(rep) || !Number.isSafeInteger(off) || off + 64 > h.length) return null;
-    const len = parseInt(h.slice(off, off + 64), 16) * 2;
-    if (!Number.isSafeInteger(len) || len > 4096 || off + 64 + len > h.length) return null;
-    const body = h.slice(off + 64, off + 64 + len);
-    return { rep, value: rep === 'renderer' ? addrWord(body.slice(0, 64)) : new TextDecoder().decode(hexBytes(body)) };
+    // Two head words, then the bytes at offset 0x40: its length word and its data.
+    if (h.length < 192 || h.length % 64 || !/^0{62}40$/.test(h.slice(64, 128))) return null;
+    const rep = (utf8(hexBytes(h.slice(0, 64))) || '').replace(/\0+$/, '');
+    if (!/^[a-z0-9-]{1,31}$/.test(rep)) return null;
+    const len = parseInt(h.slice(128, 192), 16) * 2;
+    if (!Number.isSafeInteger(len) || 192 + len > h.length) return null;
+    const body = h.slice(192, 192 + len);
+    if (rep === 'renderer') return { rep, value: (len === 64 && addrWord(body)) || null };
+    if (!TEXT_REPS.has(rep) || len > MAX_FIELD_HEX) return { rep, value: null };
+    return { rep, value: utf8(hexBytes(body)) };
 }
 
 async function readDepends(c) {
     const call = (data) => ethCall(c.chainId, c.address, data).catch(() => null);
-    const flag = (r) => (r && r.length === 66 ? BigInt(r) === 1n : null);
+    // A bool is the word 1 or the word 0; anything else is not read.
+    const flag = (r) => (!r || r.length !== 66 ? null : /^0x0{63}1$/.test(r) ? true : /^0x0{64}$/.test(r) ? false : null);
     const count = (r) => (r && r.length === 66 && BigInt(r) <= 100000n ? Number(BigInt(r)) : null);
     const field = async (name) => {
         const [r, lock] = await Promise.all([call(DEP_SEL.field + tagHex(name)), call(DEP_SEL.fieldLocked + tagHex(name))]);
@@ -660,16 +670,18 @@ async function readDepends(c) {
     let baseText = null;
     try { baseText = base ? abiString(base) : null; } catch { /* not read */ }
     const hookWords = hooks && hooks.length === 194 ? [0, 1, 2].map((i) => addrWord(hooks.slice(2 + i * 64, 66 + i * 64))) : null;
+    // A hook word that is not an address leaves the whole row unread: it is never shown as no hook.
+    const hooksRead = hookWords && !hookWords.includes(undefined) && flag(hooksLocked) !== null;
     return {
         kind: c.kind,
         uriLocked: flag(uriLocked),
-        renderer: renderer && renderer.length === 66 ? addrWord(renderer.slice(2)) : null,
+        renderer: (renderer && renderer.length === 66 && addrWord(renderer.slice(2))) || null,
         base: baseText,
         script: code ? { chunks: count(chunks), locked: flag(scriptLocked) } : null,
         deps: code ? { count: count(depCount), locked: flag(depsLocked) } : null,
         fields: { code: codeField || null, animation_url: live || null, image },
-        hooks: hookWords && flag(hooksLocked) !== null ? { configure: hookWords[0], augment: hookWords[1], transfer: hookWords[2], locked: flag(hooksLocked) } : null,
-        creator: creator && creator.rep === 'inline' ? creator.value.slice(0, 120) : null,
+        hooks: hooksRead ? { configure: hookWords[0], augment: hookWords[1], transfer: hookWords[2], locked: flag(hooksLocked) } : null,
+        creator: creator && creator.rep === 'inline' && creator.value ? creator.value.slice(0, 200) : null,
         sample: null,
     };
 }
@@ -690,7 +702,8 @@ function startDepends(c, el, listed) {
         const t = token && { uri: token.uri, image: token.meta.image, animation: token.meta.animation_url };
         renderDepends(el, { ...facts, sample: t || null });
     };
-    dependsView = { c, sample: (t) => { token = t; draw(); } };
+    // The first token read stays the sample: rows do not change as more of the grid loads.
+    dependsView = { c, sample: (t) => { if (!token) { token = t; draw(); } } };
     readDepends(c).then((f) => { facts = f; draw(); }, () => { el.innerHTML = '<dt>Contract</dt><dd>Could not be read.</dd>'; });
     // With no token listed below, token 0 is tried once, so the image row has something to go on.
     if (!listed && !isEdition(c)) loadToken(c, 0).then((t) => { if (!token) { token = t; draw(); } }, () => {});

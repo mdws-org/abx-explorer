@@ -272,7 +272,7 @@
       "name": "a field whose lock was not read is not shown as settled",
       "from": {"kind": "Series code", "uriLocked": true, "renderer": "0xbfa4181cd005b2ca64f8f124456c9fb6111a3a27", "base": "", "script": {"chunks": 1, "locked": true}, "deps": {"count": 0, "locked": true}, "fields": {"code": null, "animation_url": {"rep": "renderer", "value": "0x4f74de4835b51414a4da83527589aedc41a26fae"}, "image": null}, "hooks": {"configure": null, "augment": null, "transfer": null, "locked": true}, "creator": null, "sample": null},
       "rows": [
-        {"label": "Live view", "state": "unknown", "says": ["0x4f74de4835b51414a4da83527589aedc41a26fae", "not read"], "never": ["is locked", "owner can"]}
+        {"label": "Live view", "state": "unknown", "says": ["0x4f74de4835b51414a4da83527589aedc41a26fae", "not read"], "never": ["is locked.", "owner can"]}
       ]
     },
     {
@@ -335,7 +335,7 @@
       "name": "metadata at a server whose lock was not read",
       "from": {"kind": "Series code", "uriLocked": null, "renderer": null, "base": "https://cdn.example/t", "script": {"chunks": 1, "locked": true}, "deps": {"count": 0, "locked": true}, "fields": {"code": null, "animation_url": null, "image": null}, "hooks": {"configure": null, "augment": null, "transfer": null, "locked": true}, "creator": null, "sample": null},
       "rows": [
-        {"label": "Metadata", "state": "host", "says": ["cdn.example", "not read"], "never": ["owner can", "is locked"]}
+        {"label": "Metadata", "state": "host", "says": ["cdn.example", "not read"], "never": ["owner can", "is locked."]}
       ]
     },
     {
