@@ -1,5 +1,5 @@
 {
-  "$comment": "Cases for web/depends.js, written before it. `where` cases: one address in, where it lives out. `rows` cases: what was read from a collection in, the rows of the detail view's 'Depends on' list out. Each expected row names its label, its state (chain: on chain; pinned: named by its own hash on IPFS or Arweave; host: a server someone runs; open: nothing off chain, but the owner can change it; unknown: not read), and words its text must contain. `absent` lists labels that must not appear. The facts under `from` are what the named collection returned on 2026-11-21.",
+  "$comment": "Cases for web/depends.js, written before it. `where` cases: one address in, where it lives out. `rows` cases: what was read from a collection in, the rows of the detail view's 'Depends on' list out. Each expected row names its label, its state (chain: on chain; pinned: named by its own hash on IPFS or Arweave; host: a server someone runs; open: nothing off chain, but the owner can change it; unknown: not read), and words its text must contain. `absent` lists labels that must not appear. The facts under `from` are what the named collection returned on 2026-11-21. A field may carry `locked` (contractFieldLocked): false means the owner can still point the field somewhere else, whatever it points at now; absent means the lock was not read and nothing is said about it.",
   "where": [
     { "name": "a data: address is on chain", "uri": "data:application/json;base64,e30=", "where": "chain", "host": null },
     { "name": "an image as data:", "uri": "data:image/svg+xml;utf8,<svg/>", "where": "chain", "host": null },
@@ -194,6 +194,36 @@
       "rows": [
         { "label": "Metadata", "state": "host", "says": ["meta.example.net"], "never": ["secret", "pass", "8443"] },
         { "label": "Image", "state": "unknown", "says": ["Not read"], "never": ["javascript"] }
+      ]
+    },
+    {
+      "name": "a field built on chain that the owner can still repoint is changeable, not settled",
+      "from": {"kind": "Series code", "uriLocked": true, "renderer": "0xbfa4181cd005b2ca64f8f124456c9fb6111a3a27", "base": "", "script": {"chunks": 1, "locked": true}, "deps": {"count": 0, "locked": true}, "hooks": {"configure": null, "augment": null, "transfer": null, "locked": true}, "creator": null, "sample": null, "fields": {"code": null, "animation_url": {"rep": "renderer", "value": "0x4f74de4835b51414a4da83527589aedc41a26fae", "locked": false}, "image": {"rep": "renderer", "value": "0x4f74de4835b51414a4da83527589aedc41a26fae", "locked": true}}},
+      "rows": [
+        {"label": "Live view", "state": "open", "says": ["contract", "owner can"]},
+        {"label": "Image", "state": "chain", "says": ["contract", "locked"], "never": ["owner can"]}
+      ]
+    },
+    {
+      "name": "a file on Arweave cannot change, but an unlocked field can be pointed at another file",
+      "from": {"kind": "Series code", "uriLocked": true, "renderer": "0xbfa4181cd005b2ca64f8f124456c9fb6111a3a27", "base": "", "script": {"chunks": 0, "locked": false}, "deps": {"count": 0, "locked": true}, "hooks": {"configure": null, "augment": null, "transfer": null, "locked": true}, "creator": null, "sample": null, "fields": {"code": {"rep": "arweave", "value": "3HZv69jxJ1FSp902PiLC1nLhcksLqeygzRMPCggDUc0", "locked": false}, "animation_url": null, "image": {"rep": "ipfs", "value": "bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi", "locked": true}}},
+      "rows": [
+        {"label": "Program", "state": "open", "says": ["Arweave", "file cannot change", "owner can"]},
+        {"label": "Image", "state": "pinned", "says": ["IPFS", "file cannot change", "locked"], "never": ["owner can"]}
+      ]
+    },
+    {
+      "name": "a locked field that names a server still depends on the server",
+      "from": {"kind": "Series code", "uriLocked": true, "renderer": "0xbfa4181cd005b2ca64f8f124456c9fb6111a3a27", "base": "", "script": {"chunks": 1, "locked": true}, "deps": {"count": 0, "locked": true}, "hooks": {"configure": null, "augment": null, "transfer": null, "locked": true}, "creator": null, "sample": null, "fields": {"code": null, "animation_url": null, "image": {"rep": "url-template", "value": "https://www.gifs.shop/token/{id}.gif", "locked": true}}},
+      "rows": [
+        {"label": "Image", "state": "host", "says": ["www.gifs.shop", "locked"]}
+      ]
+    },
+    {
+      "name": "what a token's own metadata names carries no lock claim",
+      "from": {"kind": "Series image", "uriLocked": true, "renderer": "0xbfa4181cd005b2ca64f8f124456c9fb6111a3a27", "base": "", "script": null, "deps": null, "hooks": null, "creator": null, "sample": {"uri": "data:application/json;base64,e30=", "image": "https://arweave.net/x8ov_CwnjKcRFYynvVTGz50BS2JAdvl3q6VRqQXyT8o", "animation": null}, "fields": {"code": null, "animation_url": null, "image": null}},
+      "rows": [
+        {"label": "Image", "state": "pinned", "says": ["Arweave", "arweave.net"], "never": ["locked", "owner can"]}
       ]
     }
   ]
