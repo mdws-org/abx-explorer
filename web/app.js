@@ -630,7 +630,7 @@ const TEXT_REPS = new Set(['url', 'url-template', 'ipfs', 'arweave', 'inline']);
 const MAX_FIELD_HEX = 4096;   // longer values are named by their representation and not decoded
 
 /* contractField(bytes32) returns (bytes32 representation, bytes value). The result is { rep, value }: the tag
-   as text, and the value as an address for a renderer, as text where the representation carries text, and
+   as text, and the value as an address for a renderer or a reader, as text where the representation carries text, and
    null otherwise (a value that is binary, too long, or not what its representation says). Null when the
    field is not set or the reply is not that tuple. */
 function fieldValue(hex) {
@@ -643,12 +643,16 @@ function fieldValue(hex) {
     if (!Number.isSafeInteger(len) || 192 + len > h.length) return null;
     const body = h.slice(192, 192 + len);
     if (rep === 'renderer') return { rep, value: (len === 64 && addrWord(body)) || null };
+    // A reader's value is (reader, pointer): the reader is the contract to name.
+    if (rep === 'reader' || rep === 'reader-gzip') return { rep, value: (len === 128 && addrWord(body.slice(0, 64))) || null };
     if (!TEXT_REPS.has(rep) || len > MAX_FIELD_HEX) return { rep, value: null };
     return { rep, value: utf8(hexBytes(body)) };
 }
 
 async function readDepends(c) {
-    const call = (data) => ethCall(c.chainId, c.address, data).catch(() => null);
+    // A public endpoint refuses a burst now and then: one more try, a moment later, before a read is given up.
+    const once = (data) => ethCall(c.chainId, c.address, data);
+    const call = (data) => once(data).catch(() => new Promise((ok) => setTimeout(ok, 600)).then(() => once(data))).catch(() => null);
     // A bool is the word 1 or the word 0; anything else is not read.
     const flag = (r) => (!r || r.length !== 66 ? null : /^0x0{63}1$/.test(r) ? true : /^0x0{64}$/.test(r) ? false : null);
     const count = (r) => (r && r.length === 66 && BigInt(r) <= 100000n ? Number(BigInt(r)) : null);
@@ -671,17 +675,21 @@ async function readDepends(c) {
     try { baseText = base ? abiString(base) : null; } catch { /* not read */ }
     const hookWords = hooks && hooks.length === 194 ? [0, 1, 2].map((i) => addrWord(hooks.slice(2 + i * 64, 66 + i * 64))) : null;
     // A hook word that is not an address leaves the whole row unread: it is never shown as no hook.
-    const hooksRead = hookWords && !hookWords.includes(undefined) && flag(hooksLocked) !== null;
+    const hooksRead = hookWords && !hookWords.includes(undefined);
+    // A renderer word that is not an address is not "no renderer": metadata is then not read.
+    const rendererWord = renderer && renderer.length === 66 ? addrWord(renderer.slice(2)) : undefined;
     return {
         kind: c.kind,
         uriLocked: flag(uriLocked),
-        renderer: (renderer && renderer.length === 66 && addrWord(renderer.slice(2))) || null,
+        renderer: rendererWord || null,
+        rendererUnread: rendererWord === undefined && flag(uriLocked) !== null,
         base: baseText,
         script: code ? { chunks: count(chunks), locked: flag(scriptLocked) } : null,
         deps: code ? { count: count(depCount), locked: flag(depsLocked) } : null,
         fields: { code: codeField || null, animation_url: live || null, image },
         hooks: hooksRead ? { configure: hookWords[0], augment: hookWords[1], transfer: hookWords[2], locked: flag(hooksLocked) } : null,
         creator: creator && creator.rep === 'inline' && creator.value ? creator.value.slice(0, 200) : null,
+        creatorLocked: creator ? creator.locked : undefined,
         sample: null,
     };
 }
