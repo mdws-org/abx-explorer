@@ -463,7 +463,7 @@ async function loadToken(c, id, holder) {
     } else if (holder) {
         held = BigInt(await ethCall(c.chainId, c.address, `0x00fdd58e${holder.slice(2).padStart(64, '0')}${w}`)) > 0n;
     }
-    return { id, meta, owner, held };
+    return { id, meta, owner, held, uri };
 }
 
 function art(t) {
@@ -500,7 +500,9 @@ async function loadMints(c, cursor, grid, more, note) {
     more.hidden = true;
     const batch = cursor.next(MINT_PAGE);
     const results = await Promise.allSettled(batch.map((id) => loadToken(c, id)));
-    const ok = results.filter((r) => r.status === 'fulfilled').map((r) => tokenTile(c, r.value));
+    const read = results.filter((r) => r.status === 'fulfilled');
+    const ok = read.map((r) => tokenTile(c, r.value));
+    if (read.length && dependsView && dependsView.c === c) dependsView.sample(read[0].value);
     grid.insertAdjacentHTML('beforeend', ok.join(''));
     const failed = results.length - ok.length;
     note.textContent = failed ? `${failed} of ${results.length} tokens in that batch could not be read.` : '';
@@ -605,6 +607,95 @@ async function loadSites(c, list, note) {
 
 /* ── detail dialog ───────────────────────────────────────────────────────── */
 
+/* ── what a collection depends on ────────────────────────────────────────── */
+
+/* Read from the collection's own contract when its detail view opens (web/depends.js turns the answers into
+   rows). A read that fails is null, and its row says "Not read". */
+const DEP_SEL = {
+    uriLocked: '0xac998f45', renderer: '0xd50bac33', base: '0x261220a3',                    // tokenURILocked, tokenURIRenderer, tokenURIBase
+    chunks: '0x92d9906f', scriptLocked: '0x7d0b7ae4', depCount: '0xd90f5df2', depsLocked: '0xea58f971',
+    hooks: '0x3c59f1bb', hooksLocked: '0x6c59f759',                                         // paramHooks, paramHooksLocked
+    field: '0x55828c50', fieldLocked: '0x2e73cddb',                                         // contractField(bytes32), contractFieldLocked(bytes32)
+};
+const DEP_STATE = { chain: 'On chain', pinned: 'Pinned', host: 'Server', open: 'Changeable', unknown: 'Unknown' };
+const DEP_NOTE = 'Read from the contract just now through one public endpoint, not proved. Not checked: that a file kept off chain is the one the artist meant, or that a server named here still answers.';
+const isCode = (c) => c.kind.endsWith('code');
+const tagHex = (s) => Array.from(new TextEncoder().encode(s), (b) => b.toString(16).padStart(2, '0')).join('').padEnd(64, '0');
+const hexBytes = (h) => Uint8Array.from(h.match(/../g) || [], (x) => parseInt(x, 16));
+const addrWord = (w) => (/^0{24}[0-9a-f]{40}$/i.test(w) && !/^0+$/.test(w) ? `0x${w.slice(24).toLowerCase()}` : null);
+
+/* contractField(bytes32) returns (bytes32 representation, bytes value): the tag as text, and the value as an
+   address for a renderer, otherwise as text. Null when the field is not set. */
+function fieldValue(hex) {
+    const h = hex.slice(2);
+    if (h.length < 192) return null;
+    const rep = new TextDecoder().decode(hexBytes(h.slice(0, 64))).replace(/\0+$/, '');
+    const off = parseInt(h.slice(64, 128), 16) * 2;
+    if (!rep || !/^[a-z0-9-]{1,31}$/.test(rep) || !Number.isSafeInteger(off) || off + 64 > h.length) return null;
+    const len = parseInt(h.slice(off, off + 64), 16) * 2;
+    if (!Number.isSafeInteger(len) || len > 4096 || off + 64 + len > h.length) return null;
+    const body = h.slice(off + 64, off + 64 + len);
+    return { rep, value: rep === 'renderer' ? addrWord(body.slice(0, 64)) : new TextDecoder().decode(hexBytes(body)) };
+}
+
+async function readDepends(c) {
+    const call = (data) => ethCall(c.chainId, c.address, data).catch(() => null);
+    const flag = (r) => (r && r.length === 66 ? BigInt(r) === 1n : null);
+    const count = (r) => (r && r.length === 66 && BigInt(r) <= 100000n ? Number(BigInt(r)) : null);
+    const field = async (name) => {
+        const [r, lock] = await Promise.all([call(DEP_SEL.field + tagHex(name)), call(DEP_SEL.fieldLocked + tagHex(name))]);
+        const f = r ? fieldValue(r) : null;
+        return f && flag(lock) !== null ? { ...f, locked: flag(lock) } : f;
+    };
+    const code = isCode(c);
+    // Two rounds, so one detail view never sends more than ten reads at once.
+    const [uriLocked, renderer, base, image, creator] = await Promise.all([
+        call(DEP_SEL.uriLocked), call(DEP_SEL.renderer), call(DEP_SEL.base), field('image'), field('creator'),
+    ]);
+    const more = code ? await Promise.all([
+        call(DEP_SEL.chunks), call(DEP_SEL.scriptLocked), call(DEP_SEL.depCount), call(DEP_SEL.depsLocked),
+        call(DEP_SEL.hooks), call(DEP_SEL.hooksLocked), field('code'), field('animation_url'),
+    ]) : [];
+    const [chunks, scriptLocked, depCount, depsLocked, hooks, hooksLocked, codeField, live] = more;
+    let baseText = null;
+    try { baseText = base ? abiString(base) : null; } catch { /* not read */ }
+    const hookWords = hooks && hooks.length === 194 ? [0, 1, 2].map((i) => addrWord(hooks.slice(2 + i * 64, 66 + i * 64))) : null;
+    return {
+        kind: c.kind,
+        uriLocked: flag(uriLocked),
+        renderer: renderer && renderer.length === 66 ? addrWord(renderer.slice(2)) : null,
+        base: baseText,
+        script: code ? { chunks: count(chunks), locked: flag(scriptLocked) } : null,
+        deps: code ? { count: count(depCount), locked: flag(depsLocked) } : null,
+        fields: { code: codeField || null, animation_url: live || null, image },
+        hooks: hookWords && flag(hooksLocked) !== null ? { configure: hookWords[0], augment: hookWords[1], transfer: hookWords[2], locked: flag(hooksLocked) } : null,
+        creator: creator && creator.rep === 'inline' ? creator.value.slice(0, 120) : null,
+        sample: null,
+    };
+}
+
+function renderDepends(el, facts) {
+    el.innerHTML = abxDepends.rows(facts).map((r) =>
+        `<dt>${esc(r.label)}</dt><dd><span class="dep">${esc(DEP_STATE[r.state] || DEP_STATE.unknown)}</span> ${esc(r.text)}</dd>`).join('');
+}
+
+/* The newest detail view's list: { c, sample(token) }. The first token read for the mints grid fills in what
+   the contract itself does not say (where that token's image and live view come from). */
+let dependsView = null;
+
+function startDepends(c, el, listed) {
+    let facts = null, token = null;
+    const draw = () => {
+        if (!facts || !el.isConnected) return;   // the view was closed or replaced
+        const t = token && { uri: token.uri, image: token.meta.image, animation: token.meta.animation_url };
+        renderDepends(el, { ...facts, sample: t || null });
+    };
+    dependsView = { c, sample: (t) => { token = t; draw(); } };
+    readDepends(c).then((f) => { facts = f; draw(); }, () => { el.innerHTML = '<dt>Contract</dt><dd>Could not be read.</dd>'; });
+    // With no token listed below, token 0 is tried once, so the image row has something to go on.
+    if (!listed && !isEdition(c)) loadToken(c, 0).then((t) => { if (!token) { token = t; draw(); } }, () => {});
+}
+
 function detailLinks(c) {
     const ex = EXPLORER[c.chainId];
     const sample = mintCursor(c).first();
@@ -646,6 +737,9 @@ function openDetail(key, opener) {
             <dt>Minter</dt><dd>${minterLine(c)}</dd>
         </dl>
         <div class="links">${detailLinks(c).map(([l, u]) => `<a href="${esc(u)}" target="_blank" rel="noopener noreferrer">${esc(l)}</a>`).join('')}</div>
+        ${isSiteOrg(c) ? '' : `<h4 class="mints-h">Depends on</h4>
+        <dl class="depends" id="depends" aria-live="polite"><dt>Contract</dt><dd>Reading…</dd></dl>
+        <p class="disclose" id="depends-note">${esc(DEP_NOTE)}</p>`}
         <h4 class="mints-h">Mints</h4>
         <div class="mints" id="mints" aria-live="polite"></div>
         <p class="disclose" id="mints-note" role="status"></p>
@@ -663,6 +757,7 @@ function openDetail(key, opener) {
         return;
     }
     const cursor = mintCursor(c);
+    startDepends(c, dlg.querySelector('#depends'), cursor.left());
     const grid = dlg.querySelector('#mints'), more = dlg.querySelector('#mints-more'), note = dlg.querySelector('#mints-note');
     if (!cursor.left()) {
         note.textContent = 'Nothing minted yet.';

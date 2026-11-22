@@ -225,6 +225,20 @@
       "rows": [
         {"label": "Image", "state": "pinned", "says": ["Arweave", "arweave.net"], "never": ["locked", "owner can"]}
       ]
+    },
+    {
+      "name": "metadata held in the token itself, with the address unlocked, is changeable",
+      "from": {"kind": "1/1 image", "uriLocked": false, "renderer": null, "base": "", "script": null, "deps": null, "fields": {"code": null, "animation_url": null, "image": null}, "hooks": null, "creator": null, "sample": {"uri": "data:application/json;base64,e30=", "image": "data:image/png;base64,AA==", "animation": null}},
+      "rows": [
+        {"label": "Metadata", "state": "open", "says": ["token itself", "owner can"]}
+      ]
+    },
+    {
+      "name": "metadata held in the token itself and locked is settled",
+      "from": {"kind": "1/1 image", "uriLocked": true, "renderer": null, "base": "", "script": null, "deps": null, "fields": {"code": null, "animation_url": null, "image": null}, "hooks": null, "creator": null, "sample": {"uri": "data:application/json;base64,e30=", "image": "data:image/png;base64,AA==", "animation": null}},
+      "rows": [
+        {"label": "Metadata", "state": "chain", "says": ["token itself", "locked"]}
+      ]
     }
   ]
 }

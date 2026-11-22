@@ -10,6 +10,7 @@ The page reads the six ABX factory contracts on Ethereum, Base, Arbitrum and Rob
 - **Directory**: every collection with its kind, chain, contract, deployer (ENS or Basename where one is set), mint status and deploy date. Search covers names, addresses and deployer names.
 - **Gallery**: the collections that carry an image in their onchain metadata. Images hosted elsewhere are copied to the site daily (`worker/copies.js`); the page loads the copy first, then the original, then shows the collection's initials, so a blocked or offline host never leaves a broken image.
 - **Detail view**: a collection's terms and minter, links to find3r, OnChainChecker, Fully On Chain, the explorer and OpenSea, and its individual mints, read from the chain in the browser.
+- **Depends on** (in the detail view): where a collection's metadata, program, live view and image come from, and what its owner can still change, read from the collection's own contract when the view opens. Each row says one of five things: on chain, pinned (named by its own hash on IPFS or Arweave), server, changeable, or unknown. The rules are in `web/depends.js`; `tools/depends-cases.json` holds the cases they must satisfy, run by `node --test tools/depends.test.mjs`. The reads go through one public endpoint and are not proved.
 - **Minted here**: free mints collected by the page's wallet.
 - **Mint page** (`mint.html?chain=<id>&token=<address>[&id=<edition>]`): mints one token from a free sale on the shared ABX minter to the page's wallet, with a maximum price of 0. If the sale is repriced before the transaction is mined, the contract rejects it.
 
@@ -28,6 +29,8 @@ The page reads the six ABX factory contracts on Ethereum, Base, Arbitrum and Rob
 | `serve.py` | Serves `web/` on 127.0.0.1:8821 with caching off |
 | `schema/` | JSON Schemas for `contracts.json` and `abx-owners.json`, the two files the Worker publishes and the page and find3r read |
 | `tools/check-data.mjs` | Checks a file or URL against those schemas: `node tools/check-data.mjs contracts\|owners <file or URL>` |
+| `web/depends.js` | The rules for the detail view's "Depends on" list: what each contract answer is shown as |
+| `tools/depends-cases.json` | The cases those rules must satisfy, run by `node --test tools/depends.test.mjs` |
 | `tools/data-cases.json` | The cases the schemas must accept or reject, run by `node --test tools/check-data.test.mjs` |
 
 The scripts use the Python standard library only. The schema check uses Node's own modules only.
