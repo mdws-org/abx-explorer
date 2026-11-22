@@ -1,5 +1,5 @@
 {
-  "$comment": "Cases for web/depends.js, written before it. `where` cases: one address in, where it lives out. `rows` cases: what was read from a collection in, the rows of the detail view's 'Depends on' list out. Each expected row names its label, its state (chain: on chain; pinned: named by its own hash on IPFS or Arweave; host: a server someone runs; open: nothing off chain, but the owner can change it; unknown: not read), and words its text must contain. `absent` lists labels that must not appear. The facts under `from` are what the named collection returned on 2026-11-21. A field may carry `locked` (contractFieldLocked): false means the owner can still point the field somewhere else, whatever it points at now; absent means the lock was not read and nothing is said about it.",
+  "$comment": "Cases for web/depends.js, written before it. `where` cases: one address in, where it lives out. `rows` cases: what was read from a collection in, the rows of the detail view's 'Depends on' list out. Each expected row names its label, its state (chain: on chain; pinned: named by its own hash on IPFS or Arweave; host: a server someone runs; open: nothing off chain, but the owner can change it; unknown: not read), and words its text must contain. `absent` lists labels that must not appear. The facts under `from` are what the named collection returned on 2026-11-21. A field may carry `locked` (contractFieldLocked): false means the owner can still point the field somewhere else, whatever it points at now; absent means the lock was not read: the row says so and is not shown as settled.",
   "where": [
     { "name": "a data: address is on chain", "uri": "data:application/json;base64,e30=", "where": "chain", "host": null },
     { "name": "an image as data:", "uri": "data:image/svg+xml;utf8,<svg/>", "where": "chain", "host": null },
@@ -17,7 +17,14 @@
     { "name": "nothing", "uri": "", "where": "unknown", "host": null },
     { "name": "not a string", "uri": null, "where": "unknown", "host": null },
     { "name": "javascript:", "uri": "javascript:alert(1)", "where": "unknown", "host": null },
-    { "name": "an address with a user name before the host", "uri": "https://arweave.net@evil.example/x", "where": "host", "host": "evil.example" }
+    { "name": "an address with a user name before the host", "uri": "https://arweave.net@evil.example/x", "where": "host", "host": "evil.example" },
+    {"name": "a path that starts /ipfs/ with no hash after it", "uri": "https://evil.example/ipfs/not-a-cid", "where": "host", "host": "evil.example"},
+    {"name": "a host with an ipfs label and no hash before it", "uri": "https://foo.ipfs.evil.example/1.png", "where": "host", "host": "foo.ipfs.evil.example"},
+    {"name": "ipfs:// with no hash", "uri": "ipfs://not-a-cid", "where": "unknown", "host": null},
+    {"name": "ar:// with no transaction id", "uri": "ar://short", "where": "unknown", "host": null},
+    {"name": "an arweave.net page that is not a file", "uri": "https://arweave.net/about", "where": "host", "host": "arweave.net"},
+    {"name": "a gateway path with an older hash form", "uri": "https://gateway.example/ipfs/QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG/1.png", "where": "ipfs", "host": "gateway.example"},
+    {"name": "ipfs:// with an older hash form", "uri": "ipfs://QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG", "where": "ipfs", "host": null}
   ],
   "rows": [
     {
@@ -25,14 +32,14 @@
       "from": {
         "kind": "Series code", "uriLocked": false, "renderer": "0xbfa4181cd005b2ca64f8f124456c9fb6111a3a27", "base": "",
         "script": { "chunks": 1, "locked": false }, "deps": { "count": 64, "locked": false },
-        "fields": { "code": null, "animation_url": { "rep": "renderer", "value": "0x87326741ff87c37b3dd3331a2f92f3a241f5880b" }, "image": { "rep": "url-template", "value": "https://www.gifs.shop/token/{id}.gif" } },
+        "fields": { "code": null, "animation_url": { "rep": "renderer", "value": "0x87326741ff87c37b3dd3331a2f92f3a241f5880b", "locked": false }, "image": { "rep": "url-template", "value": "https://www.gifs.shop/token/{id}.gif", "locked": false } },
         "hooks": { "configure": null, "augment": null, "transfer": null, "locked": false },
         "creator": "Stephen Santoro", "sample": null
       },
       "rows": [
         { "label": "Metadata", "state": "open", "says": ["contract", "owner can"] },
         { "label": "Program", "state": "open", "says": ["On chain", "1 part", "64", "owner can"] },
-        { "label": "Live view", "state": "chain", "says": ["contract"] },
+        { "label": "Live view", "state": "open", "says": ["contract", "owner can"] },
         { "label": "Image", "state": "host", "says": ["www.gifs.shop"] },
         { "label": "Hooks", "state": "open", "says": ["None", "owner can"] },
         { "label": "Creator", "state": "chain", "says": ["Stephen Santoro", "contract"] }
@@ -43,14 +50,14 @@
       "from": {
         "kind": "Series code", "uriLocked": false, "renderer": null, "base": "https://resolver.abx.io/t",
         "script": { "chunks": 0, "locked": false }, "deps": { "count": 0, "locked": false },
-        "fields": { "code": { "rep": "arweave", "value": "3HZv69jxJ1FSp902PiLC1nLhcksLqeygzRMPCggDUc0" }, "animation_url": null, "image": null },
+        "fields": { "code": { "rep": "arweave", "value": "3HZv69jxJ1FSp902PiLC1nLhcksLqeygzRMPCggDUc0", "locked": false }, "animation_url": null, "image": null },
         "hooks": { "configure": null, "augment": null, "transfer": null, "locked": false },
         "creator": "Terence Reilly",
         "sample": { "uri": "https://resolver.abx.io/t/8453/0x1b28656ee5403d658298a7a41ba2c1944a0d9746/0", "image": "https://resolver.abx.io/t/8453/0x1b28656ee5403d658298a7a41ba2c1944a0d9746/0/image", "animation": "https://resolver.abx.io/a/8453/0x1b28656ee5403d658298a7a41ba2c1944a0d9746/0" }
       },
       "rows": [
         { "label": "Metadata", "state": "host", "says": ["resolver.abx.io", "owner can"] },
-        { "label": "Program", "state": "pinned", "says": ["Arweave"] },
+        { "label": "Program", "state": "open", "says": ["Arweave", "owner can"] },
         { "label": "Live view", "state": "host", "says": ["resolver.abx.io"] },
         { "label": "Image", "state": "host", "says": ["resolver.abx.io"] },
         { "label": "Hooks", "state": "open", "says": ["None"] }
@@ -77,12 +84,12 @@
       "from": {
         "kind": "Series code", "uriLocked": false, "renderer": "0xbfa4181cd005b2ca64f8f124456c9fb6111a3a27", "base": "",
         "script": { "chunks": 1, "locked": false }, "deps": { "count": 0, "locked": false },
-        "fields": { "code": null, "animation_url": { "rep": "renderer", "value": "0x4f74de4835b51414a4da83527589aedc41a26fae" }, "image": { "rep": "renderer", "value": "0x9642871b2a066d1394e6e0eb773122c547133f33" } },
+        "fields": { "code": null, "animation_url": { "rep": "renderer", "value": "0x4f74de4835b51414a4da83527589aedc41a26fae", "locked": false }, "image": { "rep": "renderer", "value": "0x9642871b2a066d1394e6e0eb773122c547133f33", "locked": false } },
         "hooks": { "configure": null, "augment": "0x8201d59926eb3ca3031db89d590b2b6b4be37495", "transfer": null, "locked": false },
         "creator": null, "sample": null
       },
       "rows": [
-        { "label": "Image", "state": "chain", "says": ["contract"] },
+        { "label": "Image", "state": "open", "says": ["contract", "owner can"] },
         { "label": "Hooks", "state": "open", "says": ["1 set", "0x8201d59926eb3ca3031db89d590b2b6b4be37495"] }
       ],
       "absent": ["Creator"]
@@ -92,7 +99,7 @@
       "from": {
         "kind": "Series code", "uriLocked": true, "renderer": "0xbfa4181cd005b2ca64f8f124456c9fb6111a3a27", "base": "",
         "script": { "chunks": 3, "locked": true }, "deps": { "count": 0, "locked": true },
-        "fields": { "code": null, "animation_url": { "rep": "renderer", "value": "0x4f74de4835b51414a4da83527589aedc41a26fae" }, "image": { "rep": "renderer", "value": "0x9642871b2a066d1394e6e0eb773122c547133f33" } },
+        "fields": { "code": null, "animation_url": { "rep": "renderer", "value": "0x4f74de4835b51414a4da83527589aedc41a26fae", "locked": true }, "image": { "rep": "renderer", "value": "0x9642871b2a066d1394e6e0eb773122c547133f33", "locked": true } },
         "hooks": { "configure": null, "augment": null, "transfer": null, "locked": true },
         "creator": null, "sample": null
       },
@@ -137,7 +144,7 @@
       "from": {
         "kind": "Series code", "uriLocked": false, "renderer": null, "base": "https://example.com/meta",
         "script": { "chunks": 0, "locked": false }, "deps": { "count": 0, "locked": false },
-        "fields": { "code": { "rep": "url", "value": "https://builds.example.org/app/" }, "animation_url": null, "image": { "rep": "ipfs", "value": "bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi" } },
+        "fields": { "code": { "rep": "url", "value": "https://builds.example.org/app/" }, "animation_url": null, "image": { "rep": "ipfs", "value": "bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi", "locked": true } },
         "hooks": { "configure": null, "augment": null, "transfer": null, "locked": false }, "creator": null, "sample": null
       },
       "rows": [
@@ -238,6 +245,118 @@
       "from": {"kind": "1/1 image", "uriLocked": true, "renderer": null, "base": "", "script": null, "deps": null, "fields": {"code": null, "animation_url": null, "image": null}, "hooks": null, "creator": null, "sample": {"uri": "data:application/json;base64,e30=", "image": "data:image/png;base64,AA==", "animation": null}},
       "rows": [
         {"label": "Metadata", "state": "chain", "says": ["token itself", "locked"]}
+      ]
+    },
+    {
+      "name": "a locked program whose libraries can still be changed is not settled",
+      "from": {"kind": "Series code", "uriLocked": true, "renderer": "0xbfa4181cd005b2ca64f8f124456c9fb6111a3a27", "base": "", "script": {"chunks": 1, "locked": true}, "deps": {"count": 64, "locked": false}, "fields": {"code": null, "animation_url": null, "image": null}, "hooks": {"configure": null, "augment": null, "transfer": null, "locked": true}, "creator": null, "sample": null},
+      "rows": [
+        {"label": "Program", "state": "open", "says": ["locked", "64", "librar", "owner can"]}
+      ]
+    },
+    {
+      "name": "a program whose lock was not read is not called changeable",
+      "from": {"kind": "Series code", "uriLocked": true, "renderer": "0xbfa4181cd005b2ca64f8f124456c9fb6111a3a27", "base": "", "script": {"chunks": 1, "locked": null}, "deps": {"count": 0, "locked": true}, "fields": {"code": null, "animation_url": null, "image": null}, "hooks": {"configure": null, "augment": null, "transfer": null, "locked": true}, "creator": null, "sample": null},
+      "rows": [
+        {"label": "Program", "state": "unknown", "says": ["On chain", "not read"], "never": ["owner can", "and locked"]}
+      ]
+    },
+    {
+      "name": "a renderer row names the contract and says its reads were not checked",
+      "from": {"kind": "Series code", "uriLocked": true, "renderer": "0xbfa4181cd005b2ca64f8f124456c9fb6111a3a27", "base": "", "script": {"chunks": 1, "locked": true}, "deps": {"count": 0, "locked": true}, "fields": {"code": null, "animation_url": null, "image": null}, "hooks": {"configure": null, "augment": null, "transfer": null, "locked": true}, "creator": null, "sample": null},
+      "rows": [
+        {"label": "Metadata", "state": "chain", "says": ["0xbfa4181cd005b2ca64f8f124456c9fb6111a3a27", "not checked", "locked"]}
+      ]
+    },
+    {
+      "name": "a field whose lock was not read is not shown as settled",
+      "from": {"kind": "Series code", "uriLocked": true, "renderer": "0xbfa4181cd005b2ca64f8f124456c9fb6111a3a27", "base": "", "script": {"chunks": 1, "locked": true}, "deps": {"count": 0, "locked": true}, "fields": {"code": null, "animation_url": {"rep": "renderer", "value": "0x4f74de4835b51414a4da83527589aedc41a26fae"}, "image": null}, "hooks": {"configure": null, "augment": null, "transfer": null, "locked": true}, "creator": null, "sample": null},
+      "rows": [
+        {"label": "Live view", "state": "unknown", "says": ["0x4f74de4835b51414a4da83527589aedc41a26fae", "not read"], "never": ["is locked", "owner can"]}
+      ]
+    },
+    {
+      "name": "a field read through a reader contract",
+      "from": {"kind": "Series code", "uriLocked": true, "renderer": "0xbfa4181cd005b2ca64f8f124456c9fb6111a3a27", "base": "", "script": {"chunks": 1, "locked": true}, "deps": {"count": 0, "locked": true}, "fields": {"code": null, "animation_url": null, "image": {"rep": "reader", "value": null, "locked": true}}, "hooks": {"configure": null, "augment": null, "transfer": null, "locked": true}, "creator": null, "sample": null},
+      "rows": [
+        {"label": "Image", "state": "chain", "says": ["another contract", "not checked", "locked"]}
+      ]
+    },
+    {
+      "name": "a compressed field held in the contract",
+      "from": {"kind": "Series code", "uriLocked": true, "renderer": "0xbfa4181cd005b2ca64f8f124456c9fb6111a3a27", "base": "", "script": {"chunks": 1, "locked": true}, "deps": {"count": 0, "locked": true}, "fields": {"code": null, "animation_url": null, "image": {"rep": "inline-gzip", "value": null, "locked": true}}, "hooks": {"configure": null, "augment": null, "transfer": null, "locked": true}, "creator": null, "sample": null},
+      "rows": [
+        {"label": "Image", "state": "chain", "says": ["On chain"]}
+      ]
+    },
+    {
+      "name": "a field that is only a hash, with a token to go on",
+      "from": {"kind": "Series code", "uriLocked": true, "renderer": "0xbfa4181cd005b2ca64f8f124456c9fb6111a3a27", "base": "", "script": {"chunks": 1, "locked": true}, "deps": {"count": 0, "locked": true}, "fields": {"code": null, "animation_url": null, "image": {"rep": "sha256", "value": null, "locked": true}}, "hooks": {"configure": null, "augment": null, "transfer": null, "locked": true}, "creator": null, "sample": {"uri": "data:application/json;base64,e30=", "image": "https://cdn.example/x.png", "animation": null}},
+      "rows": [
+        {"label": "Image", "state": "host", "says": ["cdn.example"]}
+      ]
+    },
+    {
+      "name": "a field that is only a hash, with no token to go on",
+      "from": {"kind": "Series code", "uriLocked": true, "renderer": "0xbfa4181cd005b2ca64f8f124456c9fb6111a3a27", "base": "", "script": {"chunks": 1, "locked": true}, "deps": {"count": 0, "locked": true}, "fields": {"code": null, "animation_url": null, "image": {"rep": "sha256", "value": null, "locked": true}}, "hooks": {"configure": null, "augment": null, "transfer": null, "locked": true}, "creator": null, "sample": null},
+      "rows": [
+        {"label": "Image", "state": "unknown", "says": ["hash"], "never": ["On chain"]}
+      ]
+    },
+    {
+      "name": "a renderer field with no contract address claims nothing",
+      "from": {"kind": "Series code", "uriLocked": true, "renderer": "0xbfa4181cd005b2ca64f8f124456c9fb6111a3a27", "base": "", "script": {"chunks": 1, "locked": true}, "deps": {"count": 0, "locked": true}, "fields": {"code": null, "animation_url": {"rep": "renderer", "value": null, "locked": true}, "image": null}, "hooks": {"configure": null, "augment": null, "transfer": null, "locked": true}, "creator": null, "sample": null},
+      "rows": [
+        {"label": "Live view", "state": "unknown", "says": ["Not read"], "never": ["Built"]}
+      ]
+    },
+    {
+      "name": "an address pattern whose server is named per token",
+      "from": {"kind": "Series code", "uriLocked": true, "renderer": "0xbfa4181cd005b2ca64f8f124456c9fb6111a3a27", "base": "", "script": {"chunks": 1, "locked": true}, "deps": {"count": 0, "locked": true}, "fields": {"code": null, "animation_url": null, "image": {"rep": "url-template", "value": "https://{id}.cdn.example/a.png", "locked": true}}, "hooks": {"configure": null, "augment": null, "transfer": null, "locked": true}, "creator": null, "sample": null},
+      "rows": [
+        {"label": "Image", "state": "host", "says": ["per token"], "never": ["0.cdn.example"]}
+      ]
+    },
+    {
+      "name": "a creator name with direction and control characters",
+      "from": {"kind": "Series code", "uriLocked": true, "renderer": "0xbfa4181cd005b2ca64f8f124456c9fb6111a3a27", "base": "", "script": {"chunks": 1, "locked": true}, "deps": {"count": 0, "locked": true}, "fields": {"code": null, "animation_url": null, "image": null}, "hooks": {"configure": null, "augment": null, "transfer": null, "locked": true}, "creator": "Alice\u202egnp.exe\u0007\u200f", "sample": null},
+      "rows": [
+        {"label": "Creator", "state": "chain", "says": ["Alicegnp.exe, as"], "never": ["\u202e", "\u0007", "\u200f"]}
+      ]
+    },
+    {
+      "name": "metadata is placed by where a token's own address points, not by the base alone",
+      "from": {"kind": "Series code", "uriLocked": true, "renderer": null, "base": "https://cdn.example/t", "script": {"chunks": 1, "locked": true}, "deps": {"count": 0, "locked": true}, "fields": {"code": null, "animation_url": null, "image": null}, "hooks": {"configure": null, "augment": null, "transfer": null, "locked": true}, "creator": null, "sample": {"uri": "https://temp.example/0.json", "image": null, "animation": null}},
+      "rows": [
+        {"label": "Metadata", "state": "host", "says": ["temp.example"], "never": ["cdn.example"]}
+      ]
+    },
+    {
+      "name": "metadata at a server whose lock was not read",
+      "from": {"kind": "Series code", "uriLocked": null, "renderer": null, "base": "https://cdn.example/t", "script": {"chunks": 1, "locked": true}, "deps": {"count": 0, "locked": true}, "fields": {"code": null, "animation_url": null, "image": null}, "hooks": {"configure": null, "augment": null, "transfer": null, "locked": true}, "creator": null, "sample": null},
+      "rows": [
+        {"label": "Metadata", "state": "host", "says": ["cdn.example", "not read"], "never": ["owner can", "is locked"]}
+      ]
+    },
+    {
+      "name": "hooks whose lock was not read",
+      "from": {"kind": "Series code", "uriLocked": true, "renderer": "0xbfa4181cd005b2ca64f8f124456c9fb6111a3a27", "base": "", "script": {"chunks": 1, "locked": true}, "deps": {"count": 0, "locked": true}, "fields": {"code": null, "animation_url": null, "image": null}, "hooks": {"configure": null, "augment": null, "transfer": null, "locked": null}, "creator": null, "sample": null},
+      "rows": [
+        {"label": "Hooks", "state": "unknown", "says": ["None", "not read"], "never": ["none can be added", "owner can"]}
+      ]
+    },
+    {
+      "name": "an ipfs field that holds no hash",
+      "from": {"kind": "Series code", "uriLocked": true, "renderer": "0xbfa4181cd005b2ca64f8f124456c9fb6111a3a27", "base": "", "script": {"chunks": 1, "locked": true}, "deps": {"count": 0, "locked": true}, "fields": {"code": null, "animation_url": null, "image": {"rep": "ipfs", "value": "not-a-cid", "locked": true}}, "hooks": {"configure": null, "augment": null, "transfer": null, "locked": true}, "creator": null, "sample": null},
+      "rows": [
+        {"label": "Image", "state": "unknown", "says": ["Not read"], "never": ["IPFS"]}
+      ]
+    },
+    {
+      "name": "a program on chain while the code field is also set",
+      "from": {"kind": "Series code", "uriLocked": true, "renderer": "0xbfa4181cd005b2ca64f8f124456c9fb6111a3a27", "base": "", "script": {"chunks": 1, "locked": true}, "deps": {"count": 0, "locked": true}, "fields": {"code": {"rep": "url", "value": "https://builds.example.org/app/", "locked": true}, "animation_url": null, "image": null}, "hooks": {"configure": null, "augment": null, "transfer": null, "locked": true}, "creator": null, "sample": null},
+      "rows": [
+        {"label": "Program", "state": "chain", "says": ["On chain", "code field"]}
       ]
     }
   ]
