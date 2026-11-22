@@ -1,5 +1,5 @@
 {
-  "$comment": "Cases for web/depends.js, written before it. `where` cases: one address in, where it lives out. `rows` cases: what was read from a collection in, the rows of the detail view's 'Depends on' list out. Each expected row names its label, its state (chain: on chain; pinned: named by its own hash on IPFS or Arweave; host: a server someone runs; open: nothing off chain, but the owner can change it; unknown: not read), and words its text must contain. `absent` lists labels that must not appear. The facts under `from` are what the named collection returned on 2026-11-21. A field may carry `locked` (contractFieldLocked): false means the owner can still point the field somewhere else, whatever it points at now; absent means the lock was not read: the row says so and is not shown as settled.",
+  "$comment": "Cases for web/depends.js, written before it. `where` cases: one address in, where it lives out. `rows` cases: what was read from a collection in, the rows of the detail view's 'Depends on' list out. Each expected row names its label, its state (chain: on chain; pinned: named by its own hash on IPFS or Arweave; host: a server someone runs; open: nothing off chain, but the owner can change it; unknown: not read), and words its text must contain. `absent` lists labels that must not appear. The facts under `from` are what the named collection returned on 2026-11-21. A field may carry `locked` (contractFieldLocked): false means the owner can still point the field somewhere else, whatever it points at now; absent means the lock was not read: the row says so and is not shown as settled. `creatorLocked` is the creator field's lock, and `rendererUnread` says the renderer address could not be read.",
   "where": [
     { "name": "a data: address is on chain", "uri": "data:application/json;base64,e30=", "where": "chain", "host": null },
     { "name": "an image as data:", "uri": "data:image/svg+xml;utf8,<svg/>", "where": "chain", "host": null },
@@ -24,7 +24,10 @@
     {"name": "ar:// with no transaction id", "uri": "ar://short", "where": "unknown", "host": null},
     {"name": "an arweave.net page that is not a file", "uri": "https://arweave.net/about", "where": "host", "host": "arweave.net"},
     {"name": "a gateway path with an older hash form", "uri": "https://gateway.example/ipfs/QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG/1.png", "where": "ipfs", "host": "gateway.example"},
-    {"name": "ipfs:// with an older hash form", "uri": "ipfs://QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG", "where": "ipfs", "host": null}
+    {"name": "ipfs:// with an older hash form", "uri": "ipfs://QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG", "where": "ipfs", "host": null},
+    {"name": "a string shaped like a hash that decodes to none", "uri": "ipfs://baaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "where": "unknown", "host": null},
+    {"name": "a transaction id that is not canonical base64", "uri": "ar://AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB", "where": "unknown", "host": null},
+    {"name": "an IPNS name, which its owner can repoint", "uri": "https://ipfs.io/ipns/k51qzi5uqu5dlvj2baxnqndepeb86cbk3ng7n3i46uzyxzyqj2xjonzllnv0v8", "where": "host", "host": "ipfs.io"}
   ],
   "rows": [
     {
@@ -34,7 +37,7 @@
         "script": { "chunks": 1, "locked": false }, "deps": { "count": 64, "locked": false },
         "fields": { "code": null, "animation_url": { "rep": "renderer", "value": "0x87326741ff87c37b3dd3331a2f92f3a241f5880b", "locked": false }, "image": { "rep": "url-template", "value": "https://www.gifs.shop/token/{id}.gif", "locked": false } },
         "hooks": { "configure": null, "augment": null, "transfer": null, "locked": false },
-        "creator": "Stephen Santoro", "sample": null
+        "creator": "Stephen Santoro", "creatorLocked": false, "sample": null
       },
       "rows": [
         { "label": "Metadata", "state": "open", "says": ["contract", "owner can"] },
@@ -42,7 +45,7 @@
         { "label": "Live view", "state": "open", "says": ["contract", "owner can"] },
         { "label": "Image", "state": "host", "says": ["www.gifs.shop"] },
         { "label": "Hooks", "state": "open", "says": ["None", "owner can"] },
-        { "label": "Creator", "state": "chain", "says": ["Stephen Santoro", "contract"] }
+        { "label": "Creator", "state": "open", "says": ["Stephen Santoro", "contract", "owner can"] }
       ]
     },
     {
@@ -52,7 +55,7 @@
         "script": { "chunks": 0, "locked": false }, "deps": { "count": 0, "locked": false },
         "fields": { "code": { "rep": "arweave", "value": "3HZv69jxJ1FSp902PiLC1nLhcksLqeygzRMPCggDUc0", "locked": false }, "animation_url": null, "image": null },
         "hooks": { "configure": null, "augment": null, "transfer": null, "locked": false },
-        "creator": "Terence Reilly",
+        "creator": "Terence Reilly", "creatorLocked": false,
         "sample": { "uri": "https://resolver.abx.io/t/8453/0x1b28656ee5403d658298a7a41ba2c1944a0d9746/0", "image": "https://resolver.abx.io/t/8453/0x1b28656ee5403d658298a7a41ba2c1944a0d9746/0/image", "animation": "https://resolver.abx.io/a/8453/0x1b28656ee5403d658298a7a41ba2c1944a0d9746/0" }
       },
       "rows": [
@@ -70,7 +73,7 @@
         "script": { "chunks": 1, "locked": true }, "deps": { "count": 0, "locked": false },
         "fields": { "code": null, "animation_url": null, "image": null },
         "hooks": { "configure": null, "augment": null, "transfer": null, "locked": false },
-        "creator": "KeyRun", "sample": null
+        "creator": "KeyRun", "creatorLocked": false, "sample": null
       },
       "rows": [
         { "label": "Metadata", "state": "host", "says": ["resolver.abx.io"] },
@@ -117,13 +120,13 @@
         "kind": "1/1 image", "uriLocked": false, "renderer": "0xbfa4181cd005b2ca64f8f124456c9fb6111a3a27", "base": "",
         "script": null, "deps": null,
         "fields": { "code": null, "animation_url": null, "image": null },
-        "hooks": null, "creator": "AB5D",
+        "hooks": null, "creator": "AB5D", "creatorLocked": false,
         "sample": { "uri": "data:application/json;base64,e30=", "image": "ipfs://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi", "animation": null }
       },
       "rows": [
         { "label": "Metadata", "state": "open", "says": ["contract"] },
         { "label": "Image", "state": "pinned", "says": ["IPFS"] },
-        { "label": "Creator", "state": "chain", "says": ["AB5D"] }
+        { "label": "Creator", "state": "open", "says": ["AB5D", "owner can"] }
       ],
       "absent": ["Program", "Live view", "Hooks"]
     },
@@ -184,7 +187,7 @@
       "from": {
         "kind": "1/1 image", "uriLocked": false, "renderer": null, "base": "https://resolver.abx.io/t",
         "script": null, "deps": null, "fields": { "code": null, "animation_url": null, "image": null }, "hooks": null,
-        "creator": "<img src=x onerror=alert(1)>", "sample": null
+        "creator": "<img src=x onerror=alert(1)>", "creatorLocked": true, "sample": null
       },
       "rows": [
         { "label": "Creator", "state": "chain", "says": ["<img src=x onerror=alert(1)>"] }
@@ -319,16 +322,16 @@
     },
     {
       "name": "a creator name with direction and control characters",
-      "from": {"kind": "Series code", "uriLocked": true, "renderer": "0xbfa4181cd005b2ca64f8f124456c9fb6111a3a27", "base": "", "script": {"chunks": 1, "locked": true}, "deps": {"count": 0, "locked": true}, "fields": {"code": null, "animation_url": null, "image": null}, "hooks": {"configure": null, "augment": null, "transfer": null, "locked": true}, "creator": "Alice\u202egnp.exe\u0007\u200f", "sample": null},
+      "from": {"kind": "Series code", "uriLocked": true, "renderer": "0xbfa4181cd005b2ca64f8f124456c9fb6111a3a27", "base": "", "script": {"chunks": 1, "locked": true}, "deps": {"count": 0, "locked": true}, "fields": {"code": null, "animation_url": null, "image": null}, "hooks": {"configure": null, "augment": null, "transfer": null, "locked": true}, "creator": "Alice\u202egnp.exe\u0007\u200f", "creatorLocked": true, "sample": null},
       "rows": [
         {"label": "Creator", "state": "chain", "says": ["Alicegnp.exe, as"], "never": ["\u202e", "\u0007", "\u200f"]}
       ]
     },
     {
-      "name": "metadata is placed by where a token's own address points, not by the base alone",
+      "name": "metadata names both the base address and where the token read here points, when they differ",
       "from": {"kind": "Series code", "uriLocked": true, "renderer": null, "base": "https://cdn.example/t", "script": {"chunks": 1, "locked": true}, "deps": {"count": 0, "locked": true}, "fields": {"code": null, "animation_url": null, "image": null}, "hooks": {"configure": null, "augment": null, "transfer": null, "locked": true}, "creator": null, "sample": {"uri": "https://temp.example/0.json", "image": null, "animation": null}},
       "rows": [
-        {"label": "Metadata", "state": "host", "says": ["temp.example"], "never": ["cdn.example"]}
+        {"label": "Metadata", "state": "host", "says": ["temp.example", "cdn.example"]}
       ]
     },
     {
@@ -356,7 +359,140 @@
       "name": "a program on chain while the code field is also set",
       "from": {"kind": "Series code", "uriLocked": true, "renderer": "0xbfa4181cd005b2ca64f8f124456c9fb6111a3a27", "base": "", "script": {"chunks": 1, "locked": true}, "deps": {"count": 0, "locked": true}, "fields": {"code": {"rep": "url", "value": "https://builds.example.org/app/", "locked": true}, "animation_url": null, "image": null}, "hooks": {"configure": null, "augment": null, "transfer": null, "locked": true}, "creator": null, "sample": null},
       "rows": [
-        {"label": "Program", "state": "chain", "says": ["On chain", "code field"]}
+        {"label": "Program", "state": "unknown", "says": ["On chain", "code field", "not checked"]}
+      ]
+    },
+    {
+      "name": "one token held on chain does not make a collection with a server base settled",
+      "from": {"kind": "Series code", "uriLocked": true, "renderer": null, "base": "https://cdn.example/t", "script": {"chunks": 1, "locked": true}, "deps": {"count": 0, "locked": true}, "fields": {"code": null, "animation_url": null, "image": null}, "hooks": {"configure": null, "augment": null, "transfer": null, "locked": true}, "creator": null, "sample": {"uri": "data:application/json;base64,e30=", "image": null, "animation": null}},
+      "rows": [
+        {"label": "Metadata", "state": "host", "says": ["cdn.example", "token"]}
+      ]
+    },
+    {
+      "name": "metadata at an IPFS base, locked",
+      "from": {"kind": "Series code", "uriLocked": true, "renderer": null, "base": "ipfs://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi/", "script": {"chunks": 1, "locked": true}, "deps": {"count": 0, "locked": true}, "fields": {"code": null, "animation_url": null, "image": null}, "hooks": {"configure": null, "augment": null, "transfer": null, "locked": true}, "creator": null, "sample": null},
+      "rows": [
+        {"label": "Metadata", "state": "pinned", "says": ["IPFS", "locked"]}
+      ]
+    },
+    {
+      "name": "metadata at an IPFS base, unlocked",
+      "from": {"kind": "Series code", "uriLocked": false, "renderer": null, "base": "ipfs://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi/", "script": {"chunks": 1, "locked": true}, "deps": {"count": 0, "locked": true}, "fields": {"code": null, "animation_url": null, "image": null}, "hooks": {"configure": null, "augment": null, "transfer": null, "locked": true}, "creator": null, "sample": null},
+      "rows": [
+        {"label": "Metadata", "state": "open", "says": ["IPFS", "owner can"]}
+      ]
+    },
+    {
+      "name": "a renderer address that could not be read is not taken as no renderer",
+      "from": {"kind": "Series code", "uriLocked": true, "renderer": null, "base": "https://cdn.example/t", "script": {"chunks": 1, "locked": true}, "deps": {"count": 0, "locked": true}, "fields": {"code": null, "animation_url": null, "image": null}, "hooks": {"configure": null, "augment": null, "transfer": null, "locked": true}, "creator": null, "sample": null, "rendererUnread": true},
+      "rows": [
+        {"label": "Metadata", "state": "unknown", "says": ["not read"], "never": ["Served by"]}
+      ]
+    },
+    {
+      "name": "hooks that are set and locked are neither changeable nor settled",
+      "from": {"kind": "Series code", "uriLocked": true, "renderer": "0xbfa4181cd005b2ca64f8f124456c9fb6111a3a27", "base": "", "script": {"chunks": 1, "locked": true}, "deps": {"count": 0, "locked": true}, "fields": {"code": null, "animation_url": null, "image": null}, "hooks": {"configure": null, "augment": "0x8201d59926eb3ca3031db89d590b2b6b4be37495", "transfer": null, "locked": true}, "creator": null, "sample": null},
+      "rows": [
+        {"label": "Hooks", "state": "unknown", "says": ["1 set", "0x8201d59926eb3ca3031db89d590b2b6b4be37495", "locked", "not checked"], "never": ["owner can"]}
+      ]
+    },
+    {
+      "name": "two hooks set",
+      "from": {"kind": "Series code", "uriLocked": true, "renderer": "0xbfa4181cd005b2ca64f8f124456c9fb6111a3a27", "base": "", "script": {"chunks": 1, "locked": true}, "deps": {"count": 0, "locked": true}, "fields": {"code": null, "animation_url": null, "image": null}, "hooks": {"configure": "0x8201d59926eb3ca3031db89d590b2b6b4be37495", "augment": null, "transfer": "0x4f74de4835b51414a4da83527589aedc41a26fae", "locked": false}, "creator": null, "sample": null},
+      "rows": [
+        {"label": "Hooks", "state": "open", "says": ["2 set", "configure: 0x8201d59926eb3ca3031db89d590b2b6b4be37495", "transfer: 0x4f74de4835b51414a4da83527589aedc41a26fae", "owner can"]}
+      ]
+    },
+    {
+      "name": "a locked program whose library count was not read",
+      "from": {"kind": "Series code", "uriLocked": true, "renderer": "0xbfa4181cd005b2ca64f8f124456c9fb6111a3a27", "base": "", "script": {"chunks": 1, "locked": true}, "deps": {"count": null, "locked": null}, "fields": {"code": null, "animation_url": null, "image": null}, "hooks": {"configure": null, "augment": null, "transfer": null, "locked": true}, "creator": null, "sample": null},
+      "rows": [
+        {"label": "Program", "state": "unknown", "says": ["On chain", "librar", "not read"]}
+      ]
+    },
+    {
+      "name": "no script stored, the script unlocked, the code field locked on chain",
+      "from": {"kind": "Series code", "uriLocked": true, "renderer": "0xbfa4181cd005b2ca64f8f124456c9fb6111a3a27", "base": "", "script": {"chunks": 0, "locked": false}, "deps": {"count": 0, "locked": true}, "fields": {"code": {"rep": "inline", "value": "x", "locked": true}, "animation_url": null, "image": null}, "hooks": {"configure": null, "augment": null, "transfer": null, "locked": true}, "creator": null, "sample": null},
+      "rows": [
+        {"label": "Program", "state": "open", "says": ["On chain", "add a script"]}
+      ]
+    },
+    {
+      "name": "no script stored and none can be added, the code field locked on Arweave",
+      "from": {"kind": "Series code", "uriLocked": true, "renderer": "0xbfa4181cd005b2ca64f8f124456c9fb6111a3a27", "base": "", "script": {"chunks": 0, "locked": true}, "deps": {"count": 0, "locked": true}, "fields": {"code": {"rep": "arweave", "value": "3HZv69jxJ1FSp902PiLC1nLhcksLqeygzRMPCggDUc0", "locked": true}, "animation_url": null, "image": null}, "hooks": {"configure": null, "augment": null, "transfer": null, "locked": true}, "creator": null, "sample": null},
+      "rows": [
+        {"label": "Program", "state": "pinned", "says": ["Arweave", "locked"], "never": ["add a script"]}
+      ]
+    },
+    {
+      "name": "no script stored, the script lock not read",
+      "from": {"kind": "Series code", "uriLocked": true, "renderer": "0xbfa4181cd005b2ca64f8f124456c9fb6111a3a27", "base": "", "script": {"chunks": 0, "locked": null}, "deps": {"count": 0, "locked": true}, "fields": {"code": {"rep": "inline", "value": "x", "locked": true}, "animation_url": null, "image": null}, "hooks": {"configure": null, "augment": null, "transfer": null, "locked": true}, "creator": null, "sample": null},
+      "rows": [
+        {"label": "Program", "state": "unknown", "says": ["On chain", "not read"]}
+      ]
+    },
+    {
+      "name": "a code field that is set but points nowhere readable",
+      "from": {"kind": "Series code", "uriLocked": true, "renderer": "0xbfa4181cd005b2ca64f8f124456c9fb6111a3a27", "base": "", "script": {"chunks": 0, "locked": true}, "deps": {"count": 0, "locked": true}, "fields": {"code": {"rep": "ipfs", "value": "not-a-cid", "locked": true}, "animation_url": null, "image": null}, "hooks": {"configure": null, "augment": null, "transfer": null, "locked": true}, "creator": null, "sample": null},
+      "rows": [
+        {"label": "Program", "state": "unknown", "says": ["code field is set"], "never": ["names no program", "IPFS"]}
+      ]
+    },
+    {
+      "name": "a code field built by a contract, with no script and none addable",
+      "from": {"kind": "Series code", "uriLocked": true, "renderer": "0xbfa4181cd005b2ca64f8f124456c9fb6111a3a27", "base": "", "script": {"chunks": 0, "locked": true}, "deps": {"count": 0, "locked": true}, "fields": {"code": {"rep": "renderer", "value": "0x4f74de4835b51414a4da83527589aedc41a26fae", "locked": true}, "animation_url": null, "image": null}, "hooks": {"configure": null, "augment": null, "transfer": null, "locked": true}, "creator": null, "sample": null},
+      "rows": [
+        {"label": "Program", "state": "chain", "says": ["0x4f74de4835b51414a4da83527589aedc41a26fae", "not checked", "locked"]}
+      ]
+    },
+    {
+      "name": "a hash-only field with a token to go on keeps its own lock: unlocked",
+      "from": {"kind": "Series code", "uriLocked": true, "renderer": "0xbfa4181cd005b2ca64f8f124456c9fb6111a3a27", "base": "", "script": {"chunks": 1, "locked": true}, "deps": {"count": 0, "locked": true}, "fields": {"code": null, "animation_url": null, "image": {"rep": "sha256", "value": null, "locked": false}}, "hooks": {"configure": null, "augment": null, "transfer": null, "locked": true}, "creator": null, "sample": {"uri": "data:application/json;base64,e30=", "image": "ipfs://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi", "animation": null}},
+      "rows": [
+        {"label": "Image", "state": "open", "says": ["hash", "IPFS", "token", "owner can"]}
+      ]
+    },
+    {
+      "name": "a hash-only field with a token to go on keeps its own lock: locked",
+      "from": {"kind": "Series code", "uriLocked": true, "renderer": "0xbfa4181cd005b2ca64f8f124456c9fb6111a3a27", "base": "", "script": {"chunks": 1, "locked": true}, "deps": {"count": 0, "locked": true}, "fields": {"code": null, "animation_url": null, "image": {"rep": "sha256", "value": null, "locked": true}}, "hooks": {"configure": null, "augment": null, "transfer": null, "locked": true}, "creator": null, "sample": {"uri": "data:application/json;base64,e30=", "image": "ipfs://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi", "animation": null}},
+      "rows": [
+        {"label": "Image", "state": "pinned", "says": ["hash", "IPFS", "locked"]}
+      ]
+    },
+    {
+      "name": "a creator field the owner can still rewrite",
+      "from": {"kind": "Series code", "uriLocked": true, "renderer": "0xbfa4181cd005b2ca64f8f124456c9fb6111a3a27", "base": "", "script": {"chunks": 1, "locked": true}, "deps": {"count": 0, "locked": true}, "fields": {"code": null, "animation_url": null, "image": null}, "hooks": {"configure": null, "augment": null, "transfer": null, "locked": true}, "creator": "Alice", "sample": null, "creatorLocked": false},
+      "rows": [
+        {"label": "Creator", "state": "open", "says": ["Alice", "owner can"]}
+      ]
+    },
+    {
+      "name": "a creator field whose lock was not read",
+      "from": {"kind": "Series code", "uriLocked": true, "renderer": "0xbfa4181cd005b2ca64f8f124456c9fb6111a3a27", "base": "", "script": {"chunks": 1, "locked": true}, "deps": {"count": 0, "locked": true}, "fields": {"code": null, "animation_url": null, "image": null}, "hooks": {"configure": null, "augment": null, "transfer": null, "locked": true}, "creator": "Alice", "sample": null},
+      "rows": [
+        {"label": "Creator", "state": "unknown", "says": ["Alice", "not read"]}
+      ]
+    },
+    {
+      "name": "a reader contract is named",
+      "from": {"kind": "Series code", "uriLocked": true, "renderer": "0xbfa4181cd005b2ca64f8f124456c9fb6111a3a27", "base": "", "script": {"chunks": 1, "locked": true}, "deps": {"count": 0, "locked": true}, "fields": {"code": null, "animation_url": null, "image": {"rep": "reader", "value": "0x4f74de4835b51414a4da83527589aedc41a26fae", "locked": true}}, "hooks": {"configure": null, "augment": null, "transfer": null, "locked": true}, "creator": null, "sample": null},
+      "rows": [
+        {"label": "Image", "state": "chain", "says": ["0x4f74de4835b51414a4da83527589aedc41a26fae", "not checked"]}
+      ]
+    },
+    {
+      "name": "a line separator in contract text cannot start a new line in a row",
+      "from": {"kind": "Series code", "uriLocked": true, "renderer": "0xbfa4181cd005b2ca64f8f124456c9fb6111a3a27", "base": "", "script": {"chunks": 1, "locked": true}, "deps": {"count": 0, "locked": true}, "fields": {"code": null, "animation_url": null, "image": null}, "hooks": {"configure": null, "augment": null, "transfer": null, "locked": true}, "creator": "Alice\u2028Image: On chain\u2029\u00ad", "sample": null, "creatorLocked": true},
+      "rows": [
+        {"label": "Creator", "state": "chain", "says": ["AliceImage: On chain, as"], "never": ["\u2028", "\u2029", "\u00ad"]}
+      ]
+    },
+    {
+      "name": "joiners that Persian and Indic names need are kept",
+      "from": {"kind": "Series code", "uriLocked": true, "renderer": "0xbfa4181cd005b2ca64f8f124456c9fb6111a3a27", "base": "", "script": {"chunks": 1, "locked": true}, "deps": {"count": 0, "locked": true}, "fields": {"code": null, "animation_url": null, "image": null}, "hooks": {"configure": null, "augment": null, "transfer": null, "locked": true}, "creator": "\u062e\u0627\u0646\u0647\u200c\u0647\u0627", "sample": null, "creatorLocked": true},
+      "rows": [
+        {"label": "Creator", "state": "chain", "says": ["\u062e\u0627\u0646\u0647\u200c\u0647\u0627"]}
       ]
     }
   ]
