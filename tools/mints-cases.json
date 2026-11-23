@@ -1,0 +1,30 @@
+{
+  "$comment": "Cases for web/mints.js, written before it: which token ids a collection's detail view lists. `count` cases are for collections whose ids run from 0 (series and 1/1 images): what the data file says was minted, the contract's nextTokenId and totalSupply as read just now (null when a read failed or the contract has no such function), and the number of ids to list, or null when nothing says. `edition` cases are for editions: the ids in the data file's sales list, and the supply read for ids 0, 1, 2 and so on until a zero or a failed read (null).",
+  "count": [
+    { "name": "the data file and the chain agree", "minted": 5, "next": 5, "supply": 5, "count": 5 },
+    { "name": "no count in the data file: the contract's next id (FLOCK, 2026-11-22)", "minted": null, "next": 11, "supply": 11, "count": 11 },
+    { "name": "no next id on the contract: its total supply (a 1/1 image)", "minted": null, "next": null, "supply": 1, "count": 1 },
+    { "name": "the data file is a day old and the chain has more", "minted": 5, "next": 9, "supply": 9, "count": 9 },
+    { "name": "an endpoint behind the chain answers less than the data file has", "minted": 9, "next": 5, "supply": 5, "count": 9 },
+    { "name": "a burned token still has an id: the next id wins over the supply", "minted": null, "next": 9, "supply": 7, "count": 9 },
+    { "name": "the chain could not be read: the data file's count", "minted": 5, "next": null, "supply": null, "count": 5 },
+    { "name": "nothing says", "minted": null, "next": null, "supply": null, "count": null },
+    { "name": "nothing minted, read from chain", "minted": null, "next": 0, "supply": 0, "count": 0 },
+    { "name": "nothing minted, from the data file alone", "minted": 0, "next": null, "supply": null, "count": 0 },
+    { "name": "a count that is not a whole number is not used", "minted": 2.5, "next": null, "supply": null, "count": null },
+    { "name": "a negative count is not used", "minted": -1, "next": null, "supply": 3, "count": 3 },
+    { "name": "a count too large to be a number of tokens is not used", "minted": null, "next": 1e30, "supply": 4, "count": 4 },
+    { "name": "a count given as text is not used", "minted": "7", "next": null, "supply": null, "count": null }
+  ],
+  "edition": [
+    { "name": "the data file lists the ids", "saleIds": [0, 1], "supplies": [], "ids": [0, 1] },
+    { "name": "ids written as text in the data file", "saleIds": ["0", "3"], "supplies": [], "ids": [0, 3] },
+    { "name": "no sales list: the ids that have a supply (Eight, 2026-11-22)", "saleIds": [], "supplies": [73, 0], "ids": [0] },
+    { "name": "three ids in a row have a supply", "saleIds": [], "supplies": [5, 1, 9, 0], "ids": [0, 1, 2] },
+    { "name": "the first read failed", "saleIds": [], "supplies": [null], "ids": [] },
+    { "name": "a later read failed: the ids before it", "saleIds": [], "supplies": [5, 2, null], "ids": [0, 1] },
+    { "name": "id 0 has no supply", "saleIds": [], "supplies": [0], "ids": [] },
+    { "name": "an id in the sales list that is not a number is left out", "saleIds": [0, "x", -1, 2.5, 4], "supplies": [], "ids": [0, 4] },
+    { "name": "the sales list wins over what was read", "saleIds": [2], "supplies": [9, 9, 0], "ids": [2] }
+  ]
+}

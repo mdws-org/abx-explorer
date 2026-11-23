@@ -510,23 +510,54 @@ async function loadMints(c, cursor, grid, more, note) {
     more.hidden = !cursor.left();
 }
 
-/* Token ids to browse, newest first, produced lazily so a huge collection costs nothing up front. */
-function mintCursor(c) {
+/* What the contract says was minted, read when a detail view opens (web/mints.js weighs it against the data
+   file, which is a day old at best and has no count for a collection with no public sale). A series answers
+   nextTokenId(); a 1/1 image has no such function and answers totalSupply(); an edition answers
+   totalSupply(id), asked from id 0 until an id has none. A failed read is null. */
+const MINT_SEL = { next: '0x75794a3c', supply: '0x18160ddd', idSupply: '0xbd85b039' };
+const MAX_EDITION_IDS = 12;
+async function readMinted(c) {
+    const num = async (data) => {
+        try {
+            const r = await ethCall(c.chainId, c.address, data);
+            return r.length === 66 && BigInt(r) <= BigInt(Number.MAX_SAFE_INTEGER) ? Number(BigInt(r)) : null;
+        } catch { return null; }
+    };
+    if (!isEdition(c)) {
+        const next = await num(MINT_SEL.next);
+        return { next, supply: next === null ? await num(MINT_SEL.supply) : null };
+    }
+    const supplies = [];
+    if (!((c.sale || {}).sales || []).length) {
+        for (let id = 0; id < MAX_EDITION_IDS; id++) {
+            const s = await num(MINT_SEL.idSupply + word(id));
+            supplies.push(s);
+            if (!s) break;
+        }
+    }
+    return { supplies };
+}
+
+/* Token ids to browse, newest first, produced lazily so a huge collection costs nothing up front. `live` is
+   what readMinted returned; without it the data file alone decides. `known` is false when nothing said how
+   many were minted. */
+function mintCursor(c, live = {}) {
     const s = c.sale || {};
-    let ids;
     if (isEdition(c)) {
         // contracts.json writes edition ids as decimal strings (schema/contracts.schema.json).
-        ids = (s.sales || []).map((x) => (typeof x.id === 'string' && /^\d+$/.test(x.id) ? Number(x.id) : x.id)).filter(Number.isSafeInteger);
+        const ids = abxMints.editionIds({ saleIds: (s.sales || []).map((x) => x.id), supplies: live.supplies });
         let i = 0;
-        return { next: (n) => ids.slice(i, (i += n)), left: () => i < ids.length, first: () => ids[0] };
+        return { next: (n) => ids.slice(i, (i += n)), left: () => i < ids.length, first: () => ids[0], known: ids.length > 0 || (live.supplies || [])[0] === 0 };
     }
-    const n = Math.min(Number.isSafeInteger(s.minted) ? s.minted : 0, MAX_LISTED_TOKENS);
-    let top = (Number.isSafeInteger(s.minted) ? s.minted : 0) - 1;
+    const count = abxMints.count({ minted: s.minted, next: live.next, supply: live.supply });
+    const n = Math.min(count || 0, MAX_LISTED_TOKENS);
+    let top = (count || 0) - 1;
     const stop = top - n;
     return {
         next: (k) => { const out = []; while (out.length < k && top > stop) out.push(top--); return out; },
         left: () => top > stop,
         first: () => (n > 0 ? 0 : undefined),
+        known: count !== null,
     };
 }
 
@@ -777,15 +808,19 @@ function openDetail(key, opener) {
         loadSites(c, dlg.querySelector('#sites'), note);
         return;
     }
-    const cursor = mintCursor(c);
-    startDepends(c, dlg.querySelector('#depends'), cursor.left());
     const grid = dlg.querySelector('#mints'), more = dlg.querySelector('#mints-more'), note = dlg.querySelector('#mints-note');
-    if (!cursor.left()) {
-        note.textContent = 'Nothing minted yet.';
-        return;
-    }
-    more.onclick = () => loadMints(c, cursor, grid, more, note);
-    loadMints(c, cursor, grid, more, note);
+    note.textContent = 'Reading…';
+    readMinted(c).then((live) => {
+        if (!grid.isConnected) return;   // the view was closed or replaced while the contract was read
+        const cursor = mintCursor(c, live);
+        startDepends(c, dlg.querySelector('#depends'), cursor.left());
+        if (!cursor.left()) {
+            note.textContent = cursor.known ? 'Nothing minted yet.' : 'How many were minted could not be read.';
+            return;
+        }
+        more.onclick = () => loadMints(c, cursor, grid, more, note);
+        loadMints(c, cursor, grid, more, note);
+    });
 }
 
 /* A live view runs only after a click, inside an opaque-origin sandbox with no referrer. */
