@@ -5,6 +5,7 @@
     { "name": "no count in the data file: the contract's next id (FLOCK, 2026-11-22)", "minted": null, "next": 11, "supply": 11, "count": 11 },
     { "name": "no next id on the contract: its total supply (a 1/1 image)", "minted": null, "next": null, "supply": 1, "count": 1 },
     { "name": "the data file is a day old and the chain has more", "minted": 5, "next": 9, "supply": 9, "count": 9 },
+    { "name": "an endpoint behind the chain answers less than the data file has", "minted": 9, "next": 5, "supply": 5, "count": 9 },
     { "name": "a burned token still has an id: the next id wins over the supply", "minted": null, "next": 9, "supply": 7, "count": 9 },
     { "name": "the chain could not be read: the data file's count", "minted": 5, "next": null, "supply": null, "count": 5 },
     { "name": "nothing says", "minted": null, "next": null, "supply": null, "count": null },
