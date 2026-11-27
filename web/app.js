@@ -141,6 +141,38 @@ function mintLabel(c) {
     }
 }
 
+/* What each kind of collection is, and what each mint state means, for a reader new to ABX. */
+const KIND_HELP = {
+    '1/1 image': 'One token with one image.',
+    'Series image': 'A numbered series of tokens, each with its own image.',
+    'Series code': 'A numbered series whose art a program draws for each token from that token\'s own seed.',
+    '1/1 edition': 'One artwork that can be held in many identical copies.',
+    'Edition image': 'Images, each of which can be held in many identical copies.',
+    'Edition code': 'Artworks drawn by a program, each of which can be held in many identical copies.',
+};
+const MINT_HELP = {
+    'owner only': 'Only the collection\'s owner can mint.',
+    'custom minter': 'Tokens are sold by a contract of the collection\'s own.',
+    'no sale set': 'No sale is set up.',
+    paused: 'The sale is set up but stopped.',
+};
+const hint = (text) => (text ? `<br><span class="hint">${esc(text)}</span>` : '');
+
+/* A collection's own description, as its contract stores it: written by whoever deployed it, so it is shown
+   as their words, as plain text, without control or direction characters that could rearrange the panel. */
+const ABOUT_MAX = 1200;
+function aboutText(c) {
+    const d = typeof c.description === 'string' ? c.description : '';
+    const clean = d.replace(/[\u0000-\u0009\u000b-\u001f\u007f-\u009f\u00ad\u061c\u200b\u200e\u200f\u2028-\u202e\u2060-\u206f\ufeff]/g, '').trim();
+    return clean.length > ABOUT_MAX ? `${clean.slice(0, ABOUT_MAX).trimEnd()}…` : clean;
+}
+function aboutBlock(c) {
+    const text = aboutText(c);
+    return text
+        ? `<p class="about">${esc(text)}</p><p class="about-src">The collection's description, as stored in its contract by whoever deployed it.</p>`
+        : '<p class="about-src">The contract holds no description of this collection.</p>';
+}
+
 function minterLine(c) {
     const s = c.sale || {};
     const m = s.minterInfo;
@@ -779,17 +811,19 @@ function openDetail(key, opener) {
         <button class="close" aria-label="Close">&times;</button>
         <div class="big">${imgs.length ? imgTag(imgs, c.name, { lazy: false }) : '<span class="ph">No preview</span>'}</div>
         <h3 id="dlg-title">${esc(c.name || 'Unnamed')} <span class="sym">${esc(c.symbol || '')}</span></h3>
+        ${aboutBlock(c)}
         <dl>
-            <dt>Kind</dt><dd>${esc(c.kind)}</dd>
+            <dt>Kind</dt><dd>${esc(c.kind)}${hint(KIND_HELP[c.kind])}</dd>
             <dt>Chain</dt><dd>${esc(c.chain)}</dd>
             <dt>Contract</dt><dd class="mono">${esc(c.address)}</dd>
             <dt>Deployer</dt><dd>${who(c.chainId, c.owner, c.ownerName)}</dd>
             <dt>Deployed</dt><dd>${day(c.timestamp)} &middot; block ${esc(c.block)}</dd>
-            <dt>Mint</dt><dd>${esc(mintLabel(c))}${supplyNote(c)}</dd>
+            <dt>Mint</dt><dd>${esc(mintLabel(c))}${supplyNote(c)}${hint(MINT_HELP[(c.sale || {}).state])}</dd>
             <dt>Minter</dt><dd>${minterLine(c)}</dd>
         </dl>
         <div class="links">${detailLinks(c).map(([l, u]) => `<a href="${esc(u)}" target="_blank" rel="noopener noreferrer">${esc(l)}</a>`).join('')}</div>
         ${isSiteOrg(c) ? '' : `<h4 class="mints-h">Depends on</h4>
+        <p class="about-src">What this collection needs in order to keep showing its art, and what its owner can still change. On chain: settled. Pinned: a file named by its own hash. Server: a server someone runs. Changeable: the owner can still change it. Unknown: not read.</p>
         <dl class="depends" id="depends" aria-live="polite"><dt>Contract</dt><dd>Reading…</dd></dl>
         <p class="disclose" id="depends-note">${esc(DEP_NOTE)}</p>`}
         <h4 class="mints-h">Mints</h4>
