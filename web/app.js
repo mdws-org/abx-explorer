@@ -601,13 +601,15 @@ const tokenArg = (id, key) => word(id) + key;
 
 /* The from-chain viewer (mdws-org/abxfs-rs) reads a project with no gateway. The link opens the viewer's check
    page, which says how the project's current version was established (by proof, or by endpoints agreeing)
-   before any of the project's own scripts run, and links on to the project. An empty value leaves the link out. */
-const VIEW_BASE = 'fromchain.dynv6.net';
+   before any of the project's own scripts run, and links on to the project. The copy at thebenmeadows.com/check/
+   is the file published on chain, on a site of its own (the project hosts share one) that is mirrored widely.
+   An empty value leaves the link out. */
+const CHECK_PAGE = 'https://thebenmeadows.com/check/';
 const VIEW_CHAINS = new Set([1, 8453, 42161, 4663]);
 function fromChainUrl(c, id) {
     if (!VIEW_CHAINS.has(c.chainId)) return null;
     const label = `${c.chainId}-${c.address.slice(2).toLowerCase()}-${id}`;
-    return VIEW_BASE ? `https://check.${VIEW_BASE}/#${label}` : null;
+    return CHECK_PAGE ? `${CHECK_PAGE}#${label}` : null;
 }
 
 async function paramString(c, id, key) {
